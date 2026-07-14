@@ -5,6 +5,44 @@ const FN={odd:'偶奇バランス',sum:'合計値',con:'連番0〜1組',tail:'�
 const DEFAULT_ON={odd:true,sum:true,con:true,tail:true,zones:true,overlap:true,slide:true,hot:true,high:true,cold:true};
 const DEFAULT_W={odd:18,sum:18,con:13,tail:9,zones:12,overlap:8,slide:8,hot:2,high:5,cold:4};
 let game=localStorage.getItem('loto-game')||'loto7',base={},rows=[],sets=[],scores=[],stopBT=false;
+
+const API_STORAGE='loto-auto-api-url';
+function apiBase(){return (localStorage.getItem(API_STORAGE)||'').replace(/\/$/,'')}
+function validateDraw(x,s=sp()){
+  return x&&Number.isInteger(+x.round)&&/^\d{4}[\/-]\d{1,2}[\/-]\d{1,2}$/.test(x.date||'')&&Array.isArray(x.main)&&x.main.length===s.k&&new Set(x.main.map(Number)).size===s.k&&x.main.every(n=>Number.isInteger(+n)&&+n>=1&&+n<=s.max)&&Array.isArray(x.bonus)&&x.bonus.length===s.b&&new Set(x.bonus.map(Number)).size===s.b&&x.bonus.every(n=>Number.isInteger(+n)&&+n>=1&&+n<=s.max)&&x.bonus.every(n=>!x.main.map(Number).includes(+n));
+}
+async function syncAuto(show=true){
+  const base=apiBase();
+  if(!base){ if(show) $('#syncStatus').textContent='自動取得APIが未設定です'; return false; }
+  const st=show?$('#syncStatus'):null;
+  if(st) st.textContent='最新結果を確認中…';
+  try{
+    const res=await fetch(`${base}/api/results?game=${game}`,{cache:'no-store'});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    const list=(data.results||[]).filter(x=>validateDraw(x));
+    if(!list.length) throw new Error(data.message||'有効な結果がありません');
+    const ex=get('extra',[]), map=new Map(ex.map(x=>[x.round,x]));
+    let added=0,updated=0;
+    for(const x of list){
+      const n={round:+x.round,date:(x.date||'').replaceAll('-','/'),main:x.main.map(Number).sort((a,b)=>a-b),bonus:x.bonus.map(Number).sort((a,b)=>a-b)};
+      const old=map.get(n.round);
+      if(!old){map.set(n.round,n);added++}
+      else if(JSON.stringify(old)!==JSON.stringify(n)){map.set(n.round,n);updated++}
+    }
+    put('extra',[...map.values()].sort((a,b)=>a.round-b));
+    merge(); latest(); gen(); rate(); history();
+    const src=data.sourceLabel||data.source||'自動取得';
+    if(st) st.textContent=`自動取得完了：追加${added}件・更新${updated}件（${src}）`;
+    localStorage.setItem(`${game}-last-auto-sync`,new Date().toISOString());
+    return true;
+  }catch(e){
+    if(st) st.textContent=`自動取得失敗：${e.message}`;
+    console.error(e); return false;
+  }
+}
+function renderApiSetting(){ const el=$('#apiUrl'); if(el) el.value=apiBase(); }
+
 const sp=()=>SPECS[game],key=x=>`${game}-${x}`;
 function get(k,d){try{return JSON.parse(localStorage.getItem(key(k))||JSON.stringify(d))}catch{return d}}
 function put(k,v){localStorage.setItem(key(k),JSON.stringify(v))}
@@ -32,11 +70,12 @@ async function tune(){const w={...weights()};$('#tuneStatus').textContent='標�
 function history(){const hs=get('history',[]);$('#history').innerHTML=hs.length?hs.map(h=>{const r=rows.find(x=>x.round===h.round),ms=r?h.sets.map(s=>match(s,r.main)):null;return `<div class="set"><div class="sethead"><b>第${h.round}回</b><span>${ms?`最高${Math.max(...ms)}個一致`:'結果待ち'}</span></div>${h.sets.map((s,i)=>`<div class="small">${'ABCDE'[i]}：${s.map(fmt).join('・')}${ms?`（${ms[i]}個）`:''}</div>`).join('')}</div>`}).join(''):'<p class="note">保存履歴はありません。</p>'}
 function save(){const r=(rows.at(-1)?.round||0)+1,h=get('history',[]).filter(x=>x.round!==r);h.unshift({round:r,saved:new Date().toISOString(),sets,scores});put('history',h.slice(0,150));history();alert(`第${r}回向けとして保存しました`)}
 function nums(s){return s.split(/[\s,、・]+/).filter(Boolean).map(Number)}
-async function load(){if(!base[game])base[game]=parseCSV(await fetch(sp().file).then(r=>r.text()),game);merge();latest();gen();renderSwitch();renderWeights();rate();baseline();history();$$('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===game));document.title=`LOTO AI ${sp().name} Ver.13`}
+async function load(){if(!base[game])base[game]=parseCSV(await fetch(sp().file).then(r=>r.text()),game);merge();latest();gen();renderSwitch();renderWeights();rate();baseline();history();renderApiSetting();$$('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===game));document.title=`LOTO AI ${sp().name} Ver.14`;if(apiBase())syncAuto(false)}
 async function changeGame(g){game=g;localStorage.setItem('loto-game',g);await load()}
 $$('[data-game]').forEach(b=>b.onclick=()=>changeGame(b.dataset.game));$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.page').forEach(x=>x.classList.remove('active'));$('#'+b.dataset.page).classList.add('active')});
 $$('.backtest').forEach(b=>b.onclick=()=>backtest(+b.dataset.n));$$('.period').forEach(b=>b.onclick=()=>rate(+b.dataset.n));$('#stopBacktest').onclick=()=>stopBT=true;$('#regen').onclick=gen;$('#savePrediction').onclick=save;$('#copySets').onclick=()=>navigator.clipboard.writeText(sets.map((a,i)=>`${'ABCDE'[i]}：${a.map(fmt).join('・')}`).join('\n')).then(()=>alert('コピーしました'));$('#applyFilters').onclick=()=>{const c={};$$('[data-filter]').forEach(x=>c[x.dataset.filter]=x.checked);put('filters',c);gen()};$('#resetFilters').onclick=()=>{localStorage.removeItem(key('filters'));renderSwitch();gen()};$('#ablationBtn').onclick=ablation;$('#autoTune').onclick=tune;$('#resetWeights').onclick=()=>{localStorage.removeItem(key('weights'));renderWeights();gen()};$('#official').onclick=()=>open(sp().official,'_blank');
+$('#syncNow').onclick=()=>syncAuto(true);$('#apiSettings').onclick=()=>{document.querySelector('[data-page=add]').click();setTimeout(()=>$('#apiUrl').focus(),100)};$('#saveApi').onclick=async()=>{const u=$('#apiUrl').value.trim().replace(/\/$/,'');if(!/^https:\/\//.test(u)){ $('#apiMsg').textContent='https://から始まるURLを入力してください';return}localStorage.setItem(API_STORAGE,u);$('#apiMsg').textContent='保存しました。接続確認中…';const ok=await syncAuto(true);$('#apiMsg').textContent=ok?'接続確認に成功しました':'接続できません。Worker URLを確認してください'};$('#clearApi').onclick=()=>{localStorage.removeItem(API_STORAGE);$('#apiUrl').value='';$('#apiMsg').textContent='設定を解除しました'};
 $('#addResult').onclick=()=>{const r=+$('#round').value,d=$('#date').value,m=nums($('#mainNums').value),b=nums($('#bonusNums').value);if(!r||!d||m.length!==sp().k||b.length!==sp().b||new Set(m).size!==sp().k||m.some(n=>n<1||n>sp().max)||b.some(n=>n<1||n>sp().max)){ $('#addMsg').textContent='入力内容を確認してください';return}const ex=get('extra',[]).filter(x=>x.round!==r);ex.push({round:r,date:d.replaceAll('-','/'),main:m.sort((a,b)=>a-b),bonus:b.sort((a,b)=>a-b)});put('extra',ex);merge();latest();gen();rate();history();$('#round').value=r+1;$('#addMsg').textContent=`第${r}回を保存・照合しました`};
-$('#exportBtn').onclick=()=>{const data={game,all:{loto6:{extra:getFor('loto6','extra'),history:getFor('loto6','history'),filters:getFor('loto6','filters'),weights:getFor('loto6','weights')},loto7:{extra:getFor('loto7','extra'),history:getFor('loto7','history'),filters:getFor('loto7','filters'),weights:getFor('loto7','weights')}}},blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='loto_ai_ver13_backup.json';a.click()};function getFor(g,k){try{return JSON.parse(localStorage.getItem(`${g}-${k}`)||'null')}catch{return null}}
+$('#exportBtn').onclick=()=>{const data={game,all:{loto6:{extra:getFor('loto6','extra'),history:getFor('loto6','history'),filters:getFor('loto6','filters'),weights:getFor('loto6','weights')},loto7:{extra:getFor('loto7','extra'),history:getFor('loto7','history'),filters:getFor('loto7','filters'),weights:getFor('loto7','weights')}}},blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='loto_ai_ver14_backup.json';a.click()};function getFor(g,k){try{return JSON.parse(localStorage.getItem(`${g}-${k}`)||'null')}catch{return null}}
 $('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=async()=>{try{const d=JSON.parse(rd.result);for(const g of ['loto6','loto7'])for(const k of ['extra','history','filters','weights'])if(d.all?.[g]?.[k]!=null)localStorage.setItem(`${g}-${k}`,JSON.stringify(d.all[g][k]));await load();alert('読み込みました')}catch{alert('読み込みに失敗しました')}};rd.readAsText(f)};$('#resetBtn').onclick=()=>{if(confirm(`${sp().name}の手入力データを削除しますか？`)){localStorage.removeItem(key('extra'));merge();latest();gen();rate();history()}};
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});load().catch(e=>{$('#dataStatus').textContent='データ読込失敗';console.error(e)});
