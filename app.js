@@ -1,80 +1,38 @@
 'use strict';
-let base=[], rows=[], currentSets=[];
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let base=[],rows=[],currentSets=[],currentScores=[],stopBT=false;
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],fmt=n=>String(n).padStart(2,'0');
+const DEFAULT_FILTERS={odd:true,sum:true,con:true,tail:true,zones:true,overlap:true,slide:true,hot:true,high:true};
+const FILTER_NAMES={odd:'偶奇3:4・4:3',sum:'合計105〜165',con:'連番0〜1組',tail:'末尾重複1〜2',zones:'4ゾーン分散',overlap:'前回重複0〜2',slide:'スライド1〜3',hot:'直近20回頻度',high:'32以上を含む'};
+function cfg(){try{return {...DEFAULT_FILTERS,...JSON.parse(localStorage.getItem('loto7-filters')||'{}')}}catch{return {...DEFAULT_FILTERS}}}
 function parseCSV(t){const ls=t.trim().split(/\r?\n/);return ls.slice(1).map(l=>{const c=l.split(',');return{round:+c[0],date:c[1],main:c.slice(2,9).map(Number).sort((a,b)=>a-b),bonus:c.slice(9,11).map(Number)}}).filter(x=>x.round&&x.main.length===7)}
-function extras(){try{return JSON.parse(localStorage.getItem('loto7-extra')||'[]')}catch{return[]}}
-function saveExtras(x){localStorage.setItem('loto7-extra',JSON.stringify(x))}
+function getJSON(k,d=[]){try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch{return d}}
+function extras(){return getJSON('loto7-extra',[])}function histories(){return getJSON('loto7-history',[])}
 function merge(){const m=new Map();[...base,...extras()].forEach(x=>m.set(x.round,x));rows=[...m.values()].sort((a,b)=>a.round-b)}
-const fmt=n=>String(n).padStart(2,'0');
 function balls(nums,bonus=false){return `<div class="balls">${nums.map(n=>`<span class="ball ${bonus?'bonus':''}">${fmt(n)}</span>`).join('')}</div>`}
-function latest(){const x=rows.at(-1);$('#latest').innerHTML=x?`<h3>第${x.round}回　${x.date}</h3>${balls(x.main)}<h3>ボーナス</h3>${balls(x.bonus,true)}`:'データなし';$('#dataStatus').textContent=`登録済み ${rows.length}回分`}
-function oddCount(a){return a.filter(n=>n%2).length}
-function consecutivePairs(a){let c=0;for(let i=1;i<a.length;i++)if(a[i]-a[i-1]===1)c++;return c}
+function oddCount(a){return a.filter(n=>n%2).length}function consecutivePairs(a){let c=0;for(let i=1;i<a.length;i++)if(a[i]-a[i-1]===1)c++;return c}
 function tailDup(a){const z={};a.forEach(n=>z[n%10]=(z[n%10]||0)+1);return Object.values(z).reduce((s,v)=>s+Math.max(0,v-1),0)}
 function slideCount(a,prev){const s=new Set(prev.flatMap(n=>[n-1,n+1]).filter(n=>n>=1&&n<=37));return a.filter(n=>s.has(n)).length}
-function scoreSet(a,prev,hot){let s=0;const o=oddCount(a),sum=a.reduce((x,y)=>x+y,0),con=consecutivePairs(a),td=tailDup(a),zones=[0,0,0,0];a.forEach(n=>zones[Math.min(3,Math.floor((n-1)/10))]++);if(o===3||o===4)s+=18;else if(o===2||o===5)s+=8;if(sum>=105&&sum<=165)s+=18;else if(sum>=95&&sum<=175)s+=8;if(con<=1)s+=14;else if(con===2)s+=4;if(td>=1&&td<=2)s+=10;else if(td===0)s+=4;if(zones.every(z=>z>=1))s+=13;if(a.some(n=>n>=32))s+=5;const overlap=a.filter(n=>prev.includes(n)).length;if(overlap<=2)s+=8;if(slideCount(a,prev)>=1&&slideCount(a,prev)<=3)s+=8;s+=a.reduce((q,n)=>q+(hot[n]||0),0)*1.5;return s}
+function zones(a){const z=[0,0,0,0];a.forEach(n=>z[n<=9?0:n<=19?1:n<=29?2:3]++);return z}
+function scoreSet(a,history,conf=cfg()){const prev=history.at(-1)?.main||[],recent=history.slice(-20),hot={};for(let n=1;n<=37;n++)hot[n]=recent.reduce((s,r)=>s+r.main.includes(n),0);let s=0,o=oddCount(a),sum=a.reduce((x,y)=>x+y,0),con=consecutivePairs(a),td=tailDup(a),z=zones(a),ov=a.filter(n=>prev.includes(n)).length,sl=slideCount(a,prev);
+ if(conf.odd)s+=o===3||o===4?18:(o===2||o===5?8:0);if(conf.sum)s+=sum>=105&&sum<=165?18:(sum>=95&&sum<=175?8:0);if(conf.con)s+=con<=1?14:(con===2?4:0);if(conf.tail)s+=td>=1&&td<=2?10:(td===0?4:0);if(conf.zones)s+=z.every(v=>v>=1)?13:0;if(conf.overlap)s+=ov<=2?8:0;if(conf.slide)s+=sl>=1&&sl<=3?8:0;if(conf.hot)s+=a.reduce((q,n)=>q+(hot[n]||0),0)*1.5;if(conf.high)s+=a.some(n=>n>=32)?5:0;return s}
 function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
-function generate(){const prev=rows.at(-1)?.main||[], recent=rows.slice(-20),hot={};for(let n=1;n<=37;n++)hot[n]=recent.reduce((s,r)=>s+r.main.includes(n),0);const random=rng((rows.at(-1)?.round||1)*7919+Date.now()%100000),cand=[];for(let k=0;k<12000;k++){const set=new Set();while(set.size<7)set.add(1+Math.floor(random()*37));const a=[...set].sort((x,y)=>x-y);cand.push({a,score:scoreSet(a,prev,hot)})}cand.sort((x,y)=>y.score-x.score);const picked=[],use={};for(const c of cand){let overlapMax=picked.length?Math.max(...picked.map(p=>p.filter(n=>c.a.includes(n)).length)):0;let penalty=c.a.reduce((s,n)=>s+(use[n]||0)*7,0)+Math.max(0,overlapMax-3)*25;const adj=c.score-penalty;if(picked.length<5){const bestWindow=cand.slice(0,Math.min(500,cand.length)).map(x=>({x,adj:x.score-x.a.reduce((s,n)=>s+(use[n]||0)*7,0)-Math.max(0,(picked.length?Math.max(...picked.map(p=>p.filter(n=>x.a.includes(n)).length)):0)-3)*25})).sort((a,b)=>b.adj-a.adj)[0].x;picked.push(bestWindow.a);bestWindow.a.forEach(n=>use[n]=(use[n]||0)+1);cand.splice(cand.indexOf(bestWindow),1)}if(picked.length===5)break}currentSets=picked;renderSets()}
-function renderSets(){$('#predictions').innerHTML=currentSets.map((a,i)=>`<div class="set"><span class="tag">${'ABCDE'[i]}</span>${balls(a)}</div>`).join('')}
-function filterStats(data){const prevAll=rows;const out={odd:0,sum:0,con:0,tail:0,slide:0};data.forEach((r,idx)=>{const a=r.main,o=oddCount(a),sum=a.reduce((x,y)=>x+y,0);if(o===3||o===4)out.odd++;if(sum>=100&&sum<=170)out.sum++;if(consecutivePairs(a)<=1)out.con++;if(tailDup(a)>=1&&tailDup(a)<=2)out.tail++;const globalIndex=rows.findIndex(x=>x.round===r.round);if(globalIndex>0&&slideCount(a,rows[globalIndex-1].main)>=1&&slideCount(a,rows[globalIndex-1].main)<=3)out.slide++});return out}
-function showStats(n=0){const d=n?rows.slice(-n):rows, cnt=d.length, avg=d.reduce((s,r)=>s+r.main.reduce((x,y)=>x+y,0),0)/cnt;const f=filterStats(d);$('#statsBody').innerHTML=`<div class="grid"><div class="metric"><b>${cnt}</b><span>対象回数</span></div><div class="metric"><b>${avg.toFixed(1)}</b><span>平均合計値</span></div><div class="metric"><b>${(d.reduce((s,r)=>s+oddCount(r.main),0)/cnt).toFixed(2)}</b><span>平均奇数個数</span></div><div class="metric"><b>${rows.at(-1)?.round||'-'}</b><span>最新開催回</span></div></div>`;$('#filters').innerHTML=`<table><tr><th>条件</th><th>通過率</th></tr>${[['偶奇3:4/4:3',f.odd],['合計100〜170',f.sum],['連番0〜1組',f.con],['末尾重複1〜2',f.tail],['スライド1〜3',f.slide]].map(x=>`<tr><td>${x[0]}</td><td>${(x[1]/cnt*100).toFixed(1)}%</td></tr>`).join('')}</table>`}
-function nums(s){return s.split(/[\s,、・]+/).filter(Boolean).map(Number)}
-async function init(){try{base=parseCSV(await fetch('loto7_data.csv').then(r=>r.text()));merge();latest();generate();showStats(0);$('#round').value=(rows.at(-1)?.round||0)+1}catch(e){$('#dataStatus').textContent='データ読み込みに失敗しました';console.error(e)}if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});if(!window.matchMedia('(display-mode: standalone)').matches)$('#installCard').style.display='block'}
-$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.page').forEach(x=>x.classList.remove('active'));$('#'+b.dataset.page).classList.add('active')});
-$$('.period').forEach(b=>b.onclick=()=>showStats(+b.dataset.n));
-$('#regen').onclick=generate;
-$('#copySets').onclick=()=>navigator.clipboard.writeText(currentSets.map((a,i)=>`${'ABCDE'[i]}：${a.map(fmt).join('・')}`).join('\n')).then(()=>alert('コピーしました'));
-$('#official').onclick=()=>window.open('https://www.mizuhobank.co.jp/takarakuji/check/loto/loto7/index.html','_blank');
-$('#addResult').onclick=()=>{const r=+$('#round').value,d=$('#date').value,m=nums($('#mainNums').value),b=nums($('#bonusNums').value);if(!r||!d||m.length!==7||b.length!==2||new Set(m).size!==7||m.some(n=>n<1||n>37)||b.some(n=>n<1||n>37)){ $('#addMsg').textContent='入力を確認してください。本数字7個、ボーナス2個が必要です。';return}const ex=extras().filter(x=>x.round!==r);ex.push({round:r,date:d.replaceAll('-','/'),main:m.sort((a,b)=>a-b),bonus:b.sort((a,b)=>a-b)});saveExtras(ex);merge();latest();generate();showStats(0);$('#addMsg').textContent=`第${r}回を保存しました。`};
-$('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(extras(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='loto7_backup.json';a.click();URL.revokeObjectURL(a.href)};
-$('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{saveExtras(JSON.parse(rd.result));merge();latest();generate();showStats(0);alert('読み込みました')}catch{alert('読み込みに失敗しました')}};rd.readAsText(f)};
-$('#resetBtn').onclick=()=>{if(confirm('手入力した追加データを削除しますか？')){localStorage.removeItem('loto7-extra');merge();latest();generate();showStats(0)}};
-init();
-
-let stopBT=false;
-function scoreSetAt(a, history){
- const prev=history.at(-1)?.main||[], recent=history.slice(-20),hot={};
- for(let n=1;n<=37;n++)hot[n]=recent.reduce((s,r)=>s+r.main.includes(n),0);
- return scoreSet(a,prev,hot);
-}
-function genAt(history, seed, candidateCount=450){
- const random=rng(seed),cand=[];
- for(let k=0;k<candidateCount;k++){
-  const st=new Set(); while(st.size<7)st.add(1+Math.floor(random()*37));
-  const a=[...st].sort((x,y)=>x-y); cand.push({a,score:scoreSetAt(a,history)});
- }
- cand.sort((x,y)=>y.score-x.score);
- const picked=[],use={};
- while(picked.length<5 && cand.length){
-  let best=null,bestAdj=-1e9,bestIdx=0;
-  for(let i=0;i<Math.min(180,cand.length);i++){
-   const x=cand[i], ov=picked.length?Math.max(...picked.map(p=>p.filter(n=>x.a.includes(n)).length)):0;
-   const adj=x.score-x.a.reduce((s,n)=>s+(use[n]||0)*7,0)-Math.max(0,ov-3)*25;
-   if(adj>bestAdj){bestAdj=adj;best=x;bestIdx=i}
-  }
-  picked.push(best.a); best.a.forEach(n=>use[n]=(use[n]||0)+1); cand.splice(bestIdx,1);
- }
- return picked;
-}
+function genAt(history,seed,count=700,conf=cfg()){const random=rng(seed),cand=[];for(let k=0;k<count;k++){const st=new Set();while(st.size<7)st.add(1+Math.floor(random()*37));const a=[...st].sort((x,y)=>x-y);cand.push({a,score:scoreSet(a,history,conf)})}cand.sort((x,y)=>y.score-x.score);const picked=[],scores=[],use={};while(picked.length<5&&cand.length){let bi=0,ba=-1e9;for(let i=0;i<Math.min(220,cand.length);i++){const x=cand[i],ov=picked.length?Math.max(...picked.map(p=>p.filter(n=>x.a.includes(n)).length)):0,adj=x.score-x.a.reduce((s,n)=>s+(use[n]||0)*7,0)-Math.max(0,ov-3)*25;if(adj>ba){ba=adj;bi=i}}const x=cand.splice(bi,1)[0];picked.push(x.a);scores.push(x.score);x.a.forEach(n=>use[n]=(use[n]||0)+1)}return{sets:picked,scores}}
+function generate(){const g=genAt(rows,(rows.at(-1)?.round||1)*7919+Date.now()%100000,12000);currentSets=g.sets;currentScores=g.scores;renderSets()}
+function renderSets(){$('#predictions').innerHTML=currentSets.map((a,i)=>`<div class="set"><div class="sethead"><span class="tag">${'ABCDE'[i]}　${['王道','分散','スライド','高数字','変化'][i]}</span><span class="score">適合度 ${currentScores[i]?.toFixed(1)||'-'}</span></div>${balls(a)}</div>`).join('')}
+function latest(){const x=rows.at(-1);$('#latest').innerHTML=x?`<h3>第${x.round}回　${x.date}</h3>${balls(x.main)}<h3>ボーナス</h3>${balls(x.bonus,true)}`:'データなし';$('#dataStatus').textContent=`登録済み ${rows.length}回分`}
+function renderFilterSwitches(){const c=cfg();$('#filterSwitches').innerHTML=Object.keys(DEFAULT_FILTERS).map(k=>`<label class="switch"><input type="checkbox" data-filter="${k}" ${c[k]?'checked':''}>${FILTER_NAMES[k]}</label>`).join('')}
+function filterRates(n=0){const d=n?rows.slice(-n):rows,cnt=d.length,out={odd:0,sum:0,con:0,tail:0,zones:0,overlap:0,slide:0,high:0};d.forEach(r=>{const i=rows.findIndex(x=>x.round===r.round),p=i>0?rows[i-1].main:[];if([3,4].includes(oddCount(r.main)))out.odd++;const sm=r.main.reduce((a,b)=>a+b,0);if(sm>=105&&sm<=165)out.sum++;if(consecutivePairs(r.main)<=1)out.con++;if(tailDup(r.main)>=1&&tailDup(r.main)<=2)out.tail++;if(zones(r.main).every(v=>v>=1))out.zones++;if(r.main.filter(n=>p.includes(n)).length<=2)out.overlap++;const sl=slideCount(r.main,p);if(sl>=1&&sl<=3)out.slide++;if(r.main.some(n=>n>=32))out.high++});$('#filterRates').innerHTML=`<table><tr><th>条件</th><th>通過率</th></tr>${Object.entries(out).map(([k,v])=>`<tr><td>${FILTER_NAMES[k]}</td><td>${cnt?(v/cnt*100).toFixed(1):0}%</td></tr>`).join('')}</table>`}
 function matchCount(a,b){const s=new Set(b);return a.reduce((n,x)=>n+s.has(x),0)}
-async function runBacktest(n){
- stopBT=false; const end=rows.length, start=Math.max(30,end-n), results=[];
- $('#btResult').innerHTML='';
- for(let i=start;i<end;i++){
-  if(stopBT)break;
-  const hist=rows.slice(0,i), target=rows[i];
-  const sets=genAt(hist,target.round*7919,450);
-  const ms=sets.map(s=>matchCount(s,target.main));
-  const union=new Set(sets.flat());
-  results.push({max:Math.max(...ms),avg:ms.reduce((a,b)=>a+b,0)/5,cover:target.main.filter(x=>union.has(x)).length});
-  if((i-start)%5===0){$('#btStatus').textContent=`${i-start+1}/${end-start}回を検証中…`; await new Promise(r=>setTimeout(r,0));}
- }
- if(!results.length){$('#btStatus').textContent='停止しました';return}
- const pct=k=>results.filter(x=>x.max>=k).length/results.length*100;
- const avg=k=>results.reduce((s,x)=>s+x[k],0)/results.length;
- const dist=[0,1,2,3,4,5,6,7].map(k=>results.filter(x=>x.max===k).length);
- $('#btStatus').textContent=`${results.length}回の検証完了`;
- $('#btResult').innerHTML=`<div class="grid"><div class="metric"><b>${avg('avg').toFixed(3)}</b><span>1口平均一致</span></div><div class="metric"><b>${avg('max').toFixed(3)}</b><span>5口最高一致平均</span></div><div class="metric"><b>${avg('cover').toFixed(2)}</b><span>5口全体カバー</span></div><div class="metric"><b>${pct(4).toFixed(1)}%</b><span>4個以上の回</span></div></div><table><tr><th>評価</th><th>結果</th></tr><tr><td>3個以上</td><td>${pct(3).toFixed(1)}%</td></tr><tr><td>4個以上</td><td>${pct(4).toFixed(1)}%</td></tr><tr><td>5個以上</td><td>${pct(5).toFixed(1)}%</td></tr><tr><td>最高一致分布</td><td>${dist.map((v,i)=>`${i}個:${v}`).join(' / ')}</td></tr></table>`;
-}
-$$('.backtest').forEach(b=>b.onclick=()=>runBacktest(+b.dataset.n));
-$('#stopBacktest').onclick=()=>{stopBT=true;$('#btStatus').textContent='停止処理中…'};
+function baselineHTML(){const mean=49/37;$('#baseline').innerHTML=`<div class="grid"><div class="metric"><b>${mean.toFixed(3)}</b><span>ランダム1口の理論平均一致</span></div><div class="metric"><b>比較対象</b><span>同じ5口・同じ検証回数</span></div></div><p class="note">ランダム基準は抽選の組合せ分布に基づく目安です。過去成績が上回っても将来の優位性を保証しません。</p>`}
+async function runBacktest(n,conf=cfg(),quiet=false){stopBT=false;const end=rows.length,start=n?Math.max(30,end-n):30,res=[];if(!quiet){$('#btResult').innerHTML='';$('#btStatus').textContent='開始します…'}for(let i=start;i<end;i++){if(stopBT)break;const target=rows[i],g=genAt(rows.slice(0,i),target.round*7919,360,conf),ms=g.sets.map(s=>matchCount(s,target.main)),u=new Set(g.sets.flat());res.push({max:Math.max(...ms),avg:ms.reduce((a,b)=>a+b,0)/5,cover:target.main.filter(x=>u.has(x)).length});if(!quiet&&(i-start)%5===0){$('#btStatus').textContent=`${i-start+1}/${end-start}回を検証中…`;await new Promise(r=>setTimeout(r,0))}}if(!res.length)return null;const pct=k=>res.filter(x=>x.max>=k).length/res.length*100,avg=k=>res.reduce((s,x)=>s+x[k],0)/res.length,dist=[0,1,2,3,4,5,6,7].map(k=>res.filter(x=>x.max===k).length),r={count:res.length,avg:avg('avg'),max:avg('max'),cover:avg('cover'),p3:pct(3),p4:pct(4),p5:pct(5),dist};if(!quiet){$('#btStatus').textContent=`${r.count}回の検証完了`;$('#btResult').innerHTML=`<div class="grid"><div class="metric"><b>${r.avg.toFixed(3)}</b><span>1口平均一致</span></div><div class="metric"><b>${r.max.toFixed(3)}</b><span>5口最高一致平均</span></div><div class="metric"><b>${r.cover.toFixed(2)}</b><span>5口全体カバー</span></div><div class="metric"><b>${r.p4.toFixed(1)}%</b><span>4個以上の回</span></div></div><table><tr><th>評価</th><th>結果</th></tr><tr><td>3個以上</td><td>${r.p3.toFixed(1)}%</td></tr><tr><td>4個以上</td><td>${r.p4.toFixed(1)}%</td></tr><tr><td>5個以上</td><td>${r.p5.toFixed(1)}%</td></tr><tr><td>最高一致分布</td><td>${r.dist.map((v,i)=>`${i}:${v}`).join(' / ')}</td></tr></table>`;drawChart(r.dist)}return r}
+function drawChart(dist){const c=$('#btChart'),x=c.getContext('2d'),w=c.width,h=c.height;x.clearRect(0,0,w,h);const m=Math.max(...dist,1),bw=w/(dist.length+1);x.font='24px sans-serif';x.fillStyle='#647168';for(let i=0;i<dist.length;i++){const bh=(h-65)*dist[i]/m;x.fillRect((i+.55)*bw,h-35-bh,bw*.55,bh);x.fillText(`${i}`, (i+.72)*bw,h-8);x.fillText(String(dist[i]),(i+.60)*bw,h-42-bh)}}
+async function runAblation(){const baseCfg=cfg();$('#ablationStatus').textContent='標準ロジックを検証中…';const b=await runBacktest(100,baseCfg,true);const out=[];for(const k of Object.keys(DEFAULT_FILTERS)){const c={...baseCfg,[k]:false};$('#ablationStatus').textContent=`${FILTER_NAMES[k]}を外して検証中…`;await new Promise(r=>setTimeout(r,0));const r=await runBacktest(100,c,true);out.push({k,d:r.max-b.max})}out.sort((a,b)=>a.d-b.d);$('#ablationStatus').textContent='比較完了';$('#ablationResult').innerHTML=`<table><tr><th>外したフィルター</th><th>最高一致平均の変化</th><th>判定</th></tr>${out.map(x=>`<tr><td>${FILTER_NAMES[x.k]}</td><td>${x.d>=0?'+':''}${x.d.toFixed(3)}</td><td>${x.d<-.01?'残す候補':x.d>.01?'外す候補':'影響小'}</td></tr>`).join('')}</table>`}
+function savePrediction(){const next=(rows.at(-1)?.round||0)+1,h=histories().filter(x=>x.round!==next);h.unshift({round:next,saved:new Date().toISOString(),sets:currentSets,scores:currentScores});localStorage.setItem('loto7-history',JSON.stringify(h.slice(0,100)));renderHistory();alert(`第${next}回向けとして保存しました`)}
+function renderHistory(){const hs=histories();if(!hs.length){$('#history').innerHTML='<p class="note">保存された予想はありません。</p>';return}$('#history').innerHTML=hs.map(h=>{const result=rows.find(r=>r.round===h.round),ms=result?h.sets.map(s=>matchCount(s,result.main)):null;return `<div class="set"><div class="sethead"><b>第${h.round}回</b><span>${result?`最高${Math.max(...ms)}個一致`:'結果待ち'}</span></div>${h.sets.map((s,i)=>`<div class="small">${'ABCDE'[i]}：${s.map(fmt).join('・')}${ms?`（${ms[i]}個）`:''}</div>`).join('')}</div>`}).join('')}
+function nums(s){return s.split(/[\s,、・]+/).filter(Boolean).map(Number)}
+async function init(){try{base=parseCSV(await fetch('loto7_data.csv').then(r=>r.text()));merge();latest();generate();renderFilterSwitches();filterRates(0);baselineHTML();renderHistory();$('#round').value=(rows.at(-1)?.round||0)+1}catch(e){$('#dataStatus').textContent='データ読み込み失敗';console.error(e)}if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});if(!matchMedia('(display-mode: standalone)').matches)$('#installCard').style.display='block'}
+$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.page').forEach(x=>x.classList.remove('active'));$('#'+b.dataset.page).classList.add('active')});
+$$('.backtest').forEach(b=>b.onclick=()=>runBacktest(+b.dataset.n));$$('.period').forEach(b=>b.onclick=()=>filterRates(+b.dataset.n));$('#stopBacktest').onclick=()=>{stopBT=true;$('#btStatus').textContent='停止処理中…'};$('#regen').onclick=generate;$('#savePrediction').onclick=savePrediction;$('#copySets').onclick=()=>navigator.clipboard.writeText(currentSets.map((a,i)=>`${'ABCDE'[i]}：${a.map(fmt).join('・')}`).join('\n')).then(()=>alert('コピーしました'));$('#applyFilters').onclick=()=>{const c={};$$('[data-filter]').forEach(x=>c[x.dataset.filter]=x.checked);localStorage.setItem('loto7-filters',JSON.stringify(c));generate();alert('設定を反映しました')};$('#resetFilters').onclick=()=>{localStorage.removeItem('loto7-filters');renderFilterSwitches();generate()};$('#ablationBtn').onclick=runAblation;$('#official').onclick=()=>open('https://www.mizuhobank.co.jp/takarakuji/check/loto/loto7/index.html','_blank');
+$('#addResult').onclick=()=>{const r=+$('#round').value,d=$('#date').value,m=nums($('#mainNums').value),b=nums($('#bonusNums').value);if(!r||!d||m.length!==7||b.length!==2||new Set(m).size!==7||m.some(n=>n<1||n>37)||b.some(n=>n<1||n>37)){ $('#addMsg').textContent='入力を確認してください。';return}const ex=extras().filter(x=>x.round!==r);ex.push({round:r,date:d.replaceAll('-','/'),main:m.sort((a,b)=>a-b),bonus:b.sort((a,b)=>a-b)});localStorage.setItem('loto7-extra',JSON.stringify(ex));merge();latest();generate();filterRates(0);renderHistory();$('#round').value=r+1;$('#addMsg').textContent=`第${r}回を保存・照合しました。`};
+$('#exportBtn').onclick=()=>{const data={extras:extras(),history:histories(),filters:cfg()},blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='loto7_ver10_backup.json';a.click();URL.revokeObjectURL(a.href)};$('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);localStorage.setItem('loto7-extra',JSON.stringify(d.extras||[]));localStorage.setItem('loto7-history',JSON.stringify(d.history||[]));localStorage.setItem('loto7-filters',JSON.stringify(d.filters||DEFAULT_FILTERS));merge();latest();generate();renderFilterSwitches();filterRates(0);renderHistory();alert('読み込みました')}catch{alert('失敗しました')}};rd.readAsText(f)};$('#resetBtn').onclick=()=>{if(confirm('手入力データを削除しますか？')){localStorage.removeItem('loto7-extra');merge();latest();generate();filterRates(0);renderHistory()}};
+init();
