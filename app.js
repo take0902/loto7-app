@@ -30,3 +30,51 @@ $('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(extras(),null,2
 $('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{saveExtras(JSON.parse(rd.result));merge();latest();generate();showStats(0);alert('読み込みました')}catch{alert('読み込みに失敗しました')}};rd.readAsText(f)};
 $('#resetBtn').onclick=()=>{if(confirm('手入力した追加データを削除しますか？')){localStorage.removeItem('loto7-extra');merge();latest();generate();showStats(0)}};
 init();
+
+let stopBT=false;
+function scoreSetAt(a, history){
+ const prev=history.at(-1)?.main||[], recent=history.slice(-20),hot={};
+ for(let n=1;n<=37;n++)hot[n]=recent.reduce((s,r)=>s+r.main.includes(n),0);
+ return scoreSet(a,prev,hot);
+}
+function genAt(history, seed, candidateCount=450){
+ const random=rng(seed),cand=[];
+ for(let k=0;k<candidateCount;k++){
+  const st=new Set(); while(st.size<7)st.add(1+Math.floor(random()*37));
+  const a=[...st].sort((x,y)=>x-y); cand.push({a,score:scoreSetAt(a,history)});
+ }
+ cand.sort((x,y)=>y.score-x.score);
+ const picked=[],use={};
+ while(picked.length<5 && cand.length){
+  let best=null,bestAdj=-1e9,bestIdx=0;
+  for(let i=0;i<Math.min(180,cand.length);i++){
+   const x=cand[i], ov=picked.length?Math.max(...picked.map(p=>p.filter(n=>x.a.includes(n)).length)):0;
+   const adj=x.score-x.a.reduce((s,n)=>s+(use[n]||0)*7,0)-Math.max(0,ov-3)*25;
+   if(adj>bestAdj){bestAdj=adj;best=x;bestIdx=i}
+  }
+  picked.push(best.a); best.a.forEach(n=>use[n]=(use[n]||0)+1); cand.splice(bestIdx,1);
+ }
+ return picked;
+}
+function matchCount(a,b){const s=new Set(b);return a.reduce((n,x)=>n+s.has(x),0)}
+async function runBacktest(n){
+ stopBT=false; const end=rows.length, start=Math.max(30,end-n), results=[];
+ $('#btResult').innerHTML='';
+ for(let i=start;i<end;i++){
+  if(stopBT)break;
+  const hist=rows.slice(0,i), target=rows[i];
+  const sets=genAt(hist,target.round*7919,450);
+  const ms=sets.map(s=>matchCount(s,target.main));
+  const union=new Set(sets.flat());
+  results.push({max:Math.max(...ms),avg:ms.reduce((a,b)=>a+b,0)/5,cover:target.main.filter(x=>union.has(x)).length});
+  if((i-start)%5===0){$('#btStatus').textContent=`${i-start+1}/${end-start}回を検証中…`; await new Promise(r=>setTimeout(r,0));}
+ }
+ if(!results.length){$('#btStatus').textContent='停止しました';return}
+ const pct=k=>results.filter(x=>x.max>=k).length/results.length*100;
+ const avg=k=>results.reduce((s,x)=>s+x[k],0)/results.length;
+ const dist=[0,1,2,3,4,5,6,7].map(k=>results.filter(x=>x.max===k).length);
+ $('#btStatus').textContent=`${results.length}回の検証完了`;
+ $('#btResult').innerHTML=`<div class="grid"><div class="metric"><b>${avg('avg').toFixed(3)}</b><span>1口平均一致</span></div><div class="metric"><b>${avg('max').toFixed(3)}</b><span>5口最高一致平均</span></div><div class="metric"><b>${avg('cover').toFixed(2)}</b><span>5口全体カバー</span></div><div class="metric"><b>${pct(4).toFixed(1)}%</b><span>4個以上の回</span></div></div><table><tr><th>評価</th><th>結果</th></tr><tr><td>3個以上</td><td>${pct(3).toFixed(1)}%</td></tr><tr><td>4個以上</td><td>${pct(4).toFixed(1)}%</td></tr><tr><td>5個以上</td><td>${pct(5).toFixed(1)}%</td></tr><tr><td>最高一致分布</td><td>${dist.map((v,i)=>`${i}個:${v}`).join(' / ')}</td></tr></table>`;
+}
+$$('.backtest').forEach(b=>b.onclick=()=>runBacktest(+b.dataset.n));
+$('#stopBacktest').onclick=()=>{stopBT=true;$('#btStatus').textContent='停止処理中…'};

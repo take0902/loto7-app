@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="ロト7分析">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>ロト7 分析 Ver.8.0</title>
+<title>ロト7 分析 Ver.9.0</title>
 <style>
 :root{--bg:#f4f7f5;--card:#fff;--ink:#17211c;--muted:#66736c;--brand:#0b5d3b;--brand2:#0e7a4d;--line:#dce5df;--warn:#8a5a00}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;padding-bottom:92px}header{padding:max(18px,env(safe-area-inset-top)) 18px 18px;background:linear-gradient(135deg,var(--brand),#073d28);color:white}header h1{font-size:22px;margin:6px 0}header p{margin:0;opacity:.85;font-size:13px}.wrap{max-width:760px;margin:auto;padding:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 3px 14px rgba(0,0,0,.04)}h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:16px 0 8px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.metric{background:#f8faf9;border:1px solid var(--line);border-radius:12px;padding:12px}.metric b{font-size:20px;display:block}.metric span{font-size:12px;color:var(--muted)}.balls{display:flex;gap:7px;flex-wrap:wrap}.ball{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:white;font-weight:700}.ball.bonus{background:#bd7a00}.set{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.set:last-child{border-bottom:0}.tag{min-width:32px;font-weight:800;color:var(--brand)}button,.btn{appearance:none;border:0;border-radius:12px;background:var(--brand);color:white;padding:13px 15px;font-weight:700;font-size:15px;text-decoration:none;display:inline-block}button.secondary{background:#e9f2ed;color:var(--brand)}button.danger{background:#922}.actions{display:flex;gap:8px;flex-wrap:wrap}input,textarea{width:100%;border:1px solid #bfcac4;border-radius:10px;padding:12px;font-size:16px;background:white}label{font-size:13px;color:var(--muted);display:block;margin:9px 0 5px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.note{font-size:12px;line-height:1.65;color:var(--muted)}.alert{background:#fff7df;border:1px solid #ead39b;color:#6d4b00;border-radius:12px;padding:11px;font-size:13px}.tabs{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(4,1fr);background:rgba(255,255,255,.96);border-top:1px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom));backdrop-filter:blur(12px)}.tabs button{background:transparent;color:var(--muted);font-size:12px;padding:8px 2px}.tabs button.active{color:var(--brand)}.page{display:none}.page.active{display:block}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}.status{font-size:13px;color:var(--brand);font-weight:700}.spinner{display:none}.small{font-size:12px}.install{display:none}
@@ -17,7 +17,7 @@
 </style>
 </head>
 <body>
-<header><div style="max-width:760px;margin:auto"><div class="small">LOTO7 ANALYZER</div><h1>ロト7 分析 Ver.8.0</h1><p>iPhone Safari対応・端末内保存・ホーム画面追加対応</p></div></header>
+<header><div style="max-width:760px;margin:auto"><div class="small">LOTO7 ANALYZER</div><h1>ロト7 分析 Ver.9.0</h1><p>iPhone Safari対応・端末内保存・ホーム画面追加対応</p></div></header>
 <main class="wrap">
 <section id="home" class="page active">
  <div class="card"><h2>最新データ</h2><div id="latest"></div><p id="dataStatus" class="status">読み込み中…</p></div>
@@ -25,6 +25,7 @@
  <div class="card install" id="installCard"><h2>ホーム画面に追加</h2><p class="note">Safariの共有ボタン →「ホーム画面に追加」で、通常のアプリのように起動できます。</p></div>
 </section>
 <section id="stats" class="page">
+ <div class="card"><h2>ウォークフォワード検証</h2><p class="note">各回の直前までのデータだけで5セットを生成し、次回結果と照合します。端末負荷を抑えるため候補生成数は検証用に最適化しています。</p><div class="actions"><button class="backtest" data-n="50">50回</button><button class="backtest" data-n="100">100回</button><button class="backtest" data-n="200">200回</button><button class="secondary" id="stopBacktest">停止</button></div><p id="btStatus" class="status"></p><div id="btResult"></div></div>
  <div class="card"><h2>期間別統計</h2><div class="actions"><button class="secondary period" data-n="0">全期間</button><button class="secondary period" data-n="200">200回</button><button class="secondary period" data-n="100">100回</button><button class="secondary period" data-n="50">50回</button></div><div id="statsBody" style="margin-top:12px"></div></div>
  <div class="card"><h2>フィルター通過率</h2><div id="filters"></div></div>
 </section>
@@ -41,6 +42,6 @@
  <div class="card"><h2>評価ロジック</h2><p class="note">偶奇、合計値、連番、末尾重複、ゾーン分散、前回重複、スライド、短期頻度を点数化します。5セット間では重複を抑え、利用数字を広く分散します。</p></div>
 </section>
 </main>
-<nav class="tabs"><button data-page="home" class="active">ホーム</button><button data-page="stats">統計</button><button data-page="add">結果追加</button><button data-page="about">説明</button></nav>
+<nav class="tabs"><button data-page="home" class="active">ホーム</button><button data-page="stats">検証・統計</button><button data-page="add">結果追加</button><button data-page="about">説明</button></nav>
 <script src="app.js"></script>
 </body></html>
