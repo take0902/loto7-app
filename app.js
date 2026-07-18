@@ -8,6 +8,44 @@ let game=localStorage.getItem('loto-game')||'loto7',mode=localStorage.getItem('l
 const sp=()=>SPECS[game],key=x=>`${game}-${x}`;
 function get(k,d){try{return JSON.parse(localStorage.getItem(key(k))||JSON.stringify(d))}catch{return d}}
 function put(k,v){localStorage.setItem(key(k),JSON.stringify(v))}
+function autoApiUrl(){return (localStorage.getItem('loto-auto-api')||'').trim().replace(/\/$/,'')}
+function saveExtraFor(g,records){
+  const spec=SPECS[g];
+  let ex=[];try{ex=JSON.parse(localStorage.getItem(`${g}-extra`)||'[]')}catch{}
+  const map=new Map(ex.map(x=>[x.round,x]));
+  let added=0;
+  for(const r of records||[]){
+    const main=[...(r.main||[])].map(Number).sort((a,b)=>a-b),bonus=[...(r.bonus||[])].map(Number).sort((a,b)=>a-b);
+    const all=[...main,...bonus];
+    const valid=Number.isInteger(+r.round)&&main.length===spec.k&&bonus.length===spec.b&&new Set(all).size===all.length&&all.every(n=>Number.isInteger(n)&&n>=1&&n<=spec.max);
+    if(!valid)continue;
+    if(!map.has(+r.round))added++;
+    map.set(+r.round,{round:+r.round,date:String(r.date||'').replaceAll('-','/'),main,bonus});
+  }
+  localStorage.setItem(`${g}-extra`,JSON.stringify([...map.values()].sort((a,b)=>a.round-b)));
+  return added;
+}
+async function syncOfficialData({silent=false,force=false}={}){
+  const api=autoApiUrl(),status=$('#autoSyncStatus');
+  if(!api){if(!silent&&status)status.textContent='最初にWorkerのAPI URLを保存してください。';return false}
+  const last=+(localStorage.getItem('loto-auto-last-check')||0);
+  if(!force&&Date.now()-last<30*60*1000)return false;
+  if(status)status.textContent='みずほ銀行公式ページを確認中…';
+  try{
+    const res=await fetch(`${api}/results?game=all&t=${Date.now()}`,{cache:'no-store'});
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    if(!data.ok)throw new Error(data.error||'取得失敗');
+    const a6=saveExtraFor('loto6',data.games?.loto6?.records||[]),a7=saveExtraFor('loto7',data.games?.loto7?.records||[]);
+    localStorage.setItem('loto-auto-last-check',String(Date.now()));
+    localStorage.setItem('loto-auto-last-source',data.source||'みずほ銀行');
+    if(status)status.textContent=`更新完了：ロト6 ${a6}回追加／ロト7 ${a7}回追加（${new Date().toLocaleString('ja-JP')}）`;
+    return a6+a7>0;
+  }catch(e){
+    if(status)status.textContent=`自動更新に失敗：${e.message}。既存データは保持しています。`;
+    console.error(e);return false;
+  }
+}
 function getFor(g,k){try{return JSON.parse(localStorage.getItem(`${g}-${k}`)||'null')}catch{return null}}
 function cfg(){return {...DEFAULT_ON,...get('filters',{})}}
 function weights(){return {...DEFAULT_W,...get('weights',{})}}
@@ -58,7 +96,7 @@ function financeData(){const hs=get('history',[]),cost=hs.reduce((s,h)=>s+(+h.co
 function renderFinance(){const f=financeData();if(!$('#financeSummary'))return;$('#financeSummary').innerHTML=`<div class="finance"><div class="metric"><b>¥${f.cost.toLocaleString()}</b><span>累計購入額</span></div><div class="metric"><b>¥${f.payout.toLocaleString()}</b><span>累計当選金</span></div><div class="metric"><b class="${f.profit>=0?'positive':'negative'}">${f.profit>=0?'+':''}¥${f.profit.toLocaleString()}</b><span>収支</span></div><div class="metric"><b>${f.roi.toFixed(1)}%</b><span>回収率</span></div></div><div class="progress" style="margin-top:10px"><span style="width:${Math.min(100,f.roi)}%"></span></div>`;const years={};for(const h of f.hs){const y=(h.saved||'').slice(0,4)||'不明';years[y]??={cost:0,payout:0};years[y].cost+=+h.cost||0;years[y].payout+=+h.payout||0}$('#yearlyFinance').innerHTML=Object.keys(years).length?`<table><tr><th>年</th><th>購入</th><th>当選</th><th>収支</th><th>回収率</th></tr>${Object.entries(years).sort().reverse().map(([y,x])=>`<tr><td>${y}</td><td>¥${x.cost.toLocaleString()}</td><td>¥${x.payout.toLocaleString()}</td><td class="${x.payout-x.cost>=0?'positive':'negative'}">¥${(x.payout-x.cost).toLocaleString()}</td><td>${x.cost?(x.payout/x.cost*100).toFixed(1):'0.0'}%</td></tr>`).join('')}</table>`:'<div class="mutedbox">購入履歴がありません。</div>';$('#ticketPrice').value=get('ticketPrice',game==='loto7'?300:200);$('#ticketCount').value=get('ticketCount',5)}
 function recordPayout20(){const hs=get('history',[]);if(!hs.length){alert('保存予想がありません');return}const round=+prompt('当選金を記録する開催回を入力してください',hs[0].round);if(!round)return;const h=hs.find(x=>x.round===round);if(!h){alert('該当する保存予想がありません');return}const p=+prompt(`第${round}回の当選金額（円）`,h.payout||0);if(!Number.isFinite(p)||p<0)return;h.payout=p;put('history',hs);history();renderFinance()}
 
-async function load(){if(!base[game])base[game]=parseCSV(await fetch(sp().file).then(r=>r.text()),game);merge();latest();gen();renderSwitch();renderWeights();rate();baseline();history();renderTrend();renderAIReport();renderHeatmap();renderPairs(100);renderFinance();$$('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===game));$$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));document.title=`LOTO AI ${sp().name} Ver.20`}
+async function load(){if(!base[game])base[game]=parseCSV(await fetch(sp().file).then(r=>r.text()),game);merge();latest();gen();renderSwitch();renderWeights();rate();baseline();history();renderTrend();renderAIReport();renderHeatmap();renderPairs(100);renderFinance();$$('[data-game]').forEach(b=>b.classList.toggle('active',b.dataset.game===game));$$('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));document.title=`LOTO AI ${sp().name} Ver.21`}
 async function changeGame(g){game=g;localStorage.setItem('loto-game',g);await load()}
 $$('[data-game]').forEach(b=>b.onclick=()=>changeGame(b.dataset.game));
 $$('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;localStorage.setItem('loto-mode',mode);$$('[data-mode]').forEach(x=>x.classList.toggle('active',x.dataset.mode===mode));gen()});
@@ -69,7 +107,7 @@ $('#rankWindow').onchange=renderRanking;$('#rankType').onchange=renderRanking;$(
 $('#applyFilters').onclick=()=>{const c={};$$('[data-filter]').forEach(x=>c[x.dataset.filter]=x.checked);put('filters',c);gen()};$('#resetFilters').onclick=()=>{localStorage.removeItem(key('filters'));renderSwitch();gen()};
 $('#ablationBtn').onclick=ablation;$('#autoTune').onclick=tune;$('#resetWeights').onclick=()=>{localStorage.removeItem(key('weights'));renderWeights();gen()};$('#official').onclick=()=>open(sp().official,'_blank');
 $('#addResult').onclick=()=>{const r=+$('#round').value,d=$('#date').value,m=nums($('#mainNums').value),b=nums($('#bonusNums').value);if(!validateInput(r,d,m,b)){ $('#addMsg').textContent='入力内容を確認してください。本数字・ボーナスの重複も不可です。';return}const ex=get('extra',[]).filter(x=>x.round!==r);ex.push({round:r,date:d.replaceAll('-','/'),main:m.sort((a,b)=>a-b),bonus:b.sort((a,b)=>a-b)});put('extra',ex);merge();latest();gen();rate();history();renderTrend();$('#round').value=r+1;$('#mainNums').value='';$('#bonusNums').value='';$('#addMsg').textContent=`第${r}回を保存・照合しました`};
-$('#exportBtn').onclick=()=>{const data={version:20,game,all:{loto6:{extra:getFor('loto6','extra'),history:getFor('loto6','history'),filters:getFor('loto6','filters'),weights:getFor('loto6','weights')},loto7:{extra:getFor('loto7','extra'),history:getFor('loto7','history'),filters:getFor('loto7','filters'),weights:getFor('loto7','weights')}}},blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='loto_ai_ver20_backup.json';a.click()};
+$('#exportBtn').onclick=()=>{const data={version:21,game,all:{loto6:{extra:getFor('loto6','extra'),history:getFor('loto6','history'),filters:getFor('loto6','filters'),weights:getFor('loto6','weights')},loto7:{extra:getFor('loto7','extra'),history:getFor('loto7','history'),filters:getFor('loto7','filters'),weights:getFor('loto7','weights')}}},blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='loto_ai_ver21_backup.json';a.click()};
 $('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=async()=>{try{const d=JSON.parse(rd.result);for(const g of ['loto6','loto7'])for(const k of ['extra','history','filters','weights'])if(d.all?.[g]?.[k]!=null)localStorage.setItem(`${g}-${k}`,JSON.stringify(d.all[g][k]));await load();alert('読み込みました')}catch{alert('読み込みに失敗しました')}};rd.readAsText(f)};
 $('#resetBtn').onclick=()=>{if(confirm(`${sp().name}の手入力データを削除しますか？`)){localStorage.removeItem(key('extra'));merge();latest();gen();rate();history();renderTrend()}};
 
@@ -83,5 +121,12 @@ if($('#recordPayout'))$('#recordPayout').onclick=recordPayout20;
 if($('#financeReset'))$('#financeReset').onclick=()=>{if(confirm('当選金と購入額の記録を0にしますか？')){const hs=get('history',[]).map(h=>({...h,cost:0,payout:0}));put('history',hs);history();renderFinance()}};
 if($('#savePurchaseSettings'))$('#savePurchaseSettings').onclick=()=>{put('ticketPrice',Math.max(0,+$('#ticketPrice').value||0));put('ticketCount',Math.max(1,+$('#ticketCount').value||5));renderFinance();alert('購入設定を保存しました')};
 
+if($('#autoApiUrl'))$('#autoApiUrl').value=autoApiUrl();
+if($('#saveAutoApi'))$('#saveAutoApi').onclick=()=>{
+  const u=$('#autoApiUrl').value.trim().replace(/\/$/,'');
+  if(!/^https:\/\/.+/.test(u)){ $('#autoSyncStatus').textContent='https://で始まるWorker URLを入力してください。';return }
+  localStorage.setItem('loto-auto-api',u);$('#autoSyncStatus').textContent='API URLを保存しました。';
+};
+if($('#syncOfficial'))$('#syncOfficial').onclick=async()=>{const changed=await syncOfficialData({force:true});if(changed)await load()};
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-load().catch(e=>{$('#dataStatus').textContent='データ読込失敗';console.error(e)});
+load().then(async()=>{const changed=await syncOfficialData({silent:true});if(changed)await load()}).catch(e=>{$('#dataStatus').textContent='データ読込失敗';console.error(e)});
