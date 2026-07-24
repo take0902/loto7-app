@@ -1,52 +1,174 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b5d3b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LOTO AI"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><title>LOTO AI Analyzer Ver.21</title>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#10233f">
+<title>ロト6 AI Engine Ver.2.0</title>
 <style>
-:root{--bg:#f2f6f3;--card:#fff;--ink:#142019;--muted:#647168;--brand:#0b5d3b;--line:#d9e4dc;--gold:#b97700;--red:#9a2c2c;--blue:#245a86}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;padding-bottom:90px}header{padding:max(17px,env(safe-area-inset-top)) 16px 15px;background:linear-gradient(135deg,#087147,#073724);color:#fff}.wrap{max-width:900px;margin:auto;padding:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:15px;margin:11px 0;box-shadow:0 3px 14px rgba(0,0,0,.04)}h1{font-size:22px;margin:4px 0}h2{font-size:18px;margin:0 0 11px}h3{font-size:15px}.small,.note{font-size:12px;color:var(--muted);line-height:1.6}.gamebar{display:flex;gap:8px;margin-top:11px}.gamebar button{flex:1;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35)}.gamebar button.active{background:#fff;color:var(--brand)}button,.btn{border:0;border-radius:11px;background:var(--brand);color:#fff;padding:11px 13px;font-weight:700;font-size:14px;text-decoration:none;display:inline-block}button.secondary{background:#e8f1eb;color:var(--brand)}button.blue{background:var(--blue)}button.danger{background:var(--red)}.actions{display:flex;gap:8px;flex-wrap:wrap}.balls{display:flex;gap:7px;flex-wrap:wrap}.ball{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:#fff;font-weight:800}.bonus{background:var(--gold)}.set{padding:11px 0;border-bottom:1px solid var(--line)}.sethead{display:flex;justify-content:space-between;gap:8px}.tag{font-weight:800;color:var(--brand)}.score{font-size:12px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.metric{background:#f8faf9;border:1px solid var(--line);border-radius:12px;padding:11px}.metric b{font-size:19px;display:block}.metric span{font-size:11px;color:var(--muted)}input,select{width:100%;border:1px solid #bcc8c0;border-radius:10px;padding:11px;font-size:16px;background:#fff}label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.tabs{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(255,255,255,.97);border-top:1px solid var(--line);padding:6px 3px calc(6px + env(safe-area-inset-bottom));backdrop-filter:blur(12px)}.tabs button{background:transparent;color:var(--muted);font-size:11px;padding:8px 1px}.tabs button.active{color:var(--brand)}.page{display:none}.page.active{display:block}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}.status{font-size:13px;color:var(--brand);font-weight:700}.alert{background:#fff6dd;border:1px solid #e8d29a;border-radius:11px;padding:10px;font-size:12px;color:#6a4800}.switches{display:grid;grid-template-columns:1fr 1fr;gap:7px}.switch{display:flex;align-items:center;gap:7px;background:#f8faf9;border:1px solid var(--line);border-radius:10px;padding:9px}.switch input{width:auto}.bar{height:8px;background:#e6eee9;border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--brand)}canvas{width:100%;height:210px;background:#fafcfb;border:1px solid var(--line);border-radius:12px}.rank{display:grid;grid-template-columns:36px 1fr 48px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}.rank .num{font-weight:900;color:var(--brand)}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8f1eb;color:var(--brand);font-size:11px;font-weight:700}.modebar{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.modebar button{background:#e8f1eb;color:var(--brand)}.modebar button.active{background:var(--brand);color:#fff}.mutedbox{padding:10px;border:1px dashed #b9c8be;border-radius:10px;color:var(--muted);font-size:12px}@media(min-width:650px){.grid{grid-template-columns:repeat(4,1fr)}.switches{grid-template-columns:repeat(3,1fr)}}
+:root{--navy:#10233f;--blue:#2f75b5;--green:#2f7d50;--bg:#f3f6f9;--card:#fff;--text:#18212f;--muted:#667085;--line:#dfe5ec;--gold:#fff4ce;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Meiryo",sans-serif}
+header{position:sticky;top:0;z-index:5;background:linear-gradient(135deg,var(--navy),#214e80);color:#fff;padding:18px 16px 14px;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+header h1{font-size:21px;margin:0}header p{margin:4px 0 0;font-size:12px;opacity:.85}
+main{max-width:920px;margin:auto;padding:14px 12px 90px}
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:12px 0}
+nav button{border:0;border-radius:12px;padding:10px 4px;background:#fff;color:#344054;font-size:11px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+nav button.active{background:var(--navy);color:#fff}
+section{display:none}section.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin:11px 0;box-shadow:0 2px 8px rgba(16,35,63,.06)}
+h2{font-size:18px;margin:2px 0 10px}h3{font-size:15px;margin:4px 0 8px}.muted{color:var(--muted);font-size:12px}.notice{background:var(--gold);border-left:4px solid #d6a700;padding:11px;border-radius:8px;font-size:12px}
+.kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.kpi div{background:#f7f9fc;border-radius:12px;padding:12px}.kpi b{display:block;font-size:21px}.kpi span{font-size:11px;color:var(--muted)}
+.set{border:1px solid var(--line);border-radius:14px;padding:12px;margin:9px 0}.set-head{display:flex;justify-content:space-between;align-items:center}.balls{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0}.ball{display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;background:#fff;border:2px solid var(--blue);font-weight:800}
+.badge{display:inline-block;border-radius:99px;padding:3px 8px;font-size:11px;font-weight:700;background:#e8f1fa;color:#194f7e}
+button.primary,button.secondary{width:100%;padding:13px;border:0;border-radius:12px;font-size:15px;font-weight:800;margin-top:8px}
+button.primary{background:var(--green);color:#fff}button.secondary{background:#e9eef4;color:#24364d}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cfd8e3;border-radius:10px;background:#fff;font-size:16px}
+label{display:block;font-size:12px;font-weight:700;margin:9px 0 4px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+table{width:100%;border-collapse:collapse;font-size:12px}.scroll{overflow-x:auto}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:center}th{background:#f6f8fb;position:sticky;top:0}
+.rankbar{height:7px;background:#e8edf3;border-radius:99px;overflow:hidden}.rankbar i{display:block;height:100%;background:var(--blue)}
+.good{color:var(--green);font-weight:800}.bad{color:var(--red);font-weight:800}
+footer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom));font-size:10px;color:var(--muted);text-align:center}
+@media(min-width:700px){.kpi{grid-template-columns:repeat(4,1fr)}nav button{font-size:13px}}
+</style>
+</head>
+<body>
+<header><h1>ロト6 AI Engine Ver.2.0</h1><p>予想・検証・特徴量管理を統合した研究版</p></header>
+<main>
+<nav>
+<button class="active" data-tab="home">ホーム</button>
+<button data-tab="predict">次回予想</button>
+<button data-tab="verify">検証</button>
+<button data-tab="ranking">ランキング</button>
+<button data-tab="settings">設定</button>
+</nav>
 
-.heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.heat{aspect-ratio:1;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:13px;border:1px solid rgba(0,0,0,.06)}
-.reason{padding:9px 10px;margin:6px 0;border-left:4px solid var(--brand);background:#f6faf7;border-radius:7px;font-size:13px;line-height:1.5}.pairgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.pairitem{border:1px solid var(--line);border-radius:10px;padding:9px;background:#fafcfb}.pairitem b{color:var(--brand)}
-.grade{font-size:28px;font-weight:900;color:var(--brand)}.finance{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.positive{color:#0b6b3a}.negative{color:#9a2c2c}.progress{height:12px;background:#e6eee9;border-radius:12px;overflow:hidden}.progress span{display:block;height:100%;background:linear-gradient(90deg,#0b5d3b,#36a66d)}
-@media(min-width:650px){.heatmap{grid-template-columns:repeat(10,1fr)}.pairgrid{grid-template-columns:repeat(3,1fr)}.finance{grid-template-columns:repeat(4,1fr)}}
-</style></head><body>
-<header><div style="max-width:900px;margin:auto"><div class="small" style="color:#d8eee2">LOTO AI ANALYZER</div><h1>Ver.21.0</h1><div class="small" style="color:#d8eee2">AI分析・検証・公式結果自動更新</div><div class="gamebar"><button data-game="loto6">ロト6</button><button data-game="loto7" class="active">ロト7</button></div></div></header>
-<main class="wrap">
-<section id="home" class="page active">
- <div class="card"><h2>最新データ</h2><div id="latest"></div><p id="dataStatus" class="status">読み込み中…</p></div>
- <div class="card"><h2>予想モード</h2><div class="modebar"><button data-mode="standard" class="active">標準</button><button data-mode="spread">分散重視</button><button data-mode="high">高数字重視</button></div><p class="note">抽選確率そのものは変わりません。5口内の構成方針を切り替えます。</p></div>
- <div class="card"><h2>次回向け5セット</h2><div id="predictions"></div><div class="actions"><button id="regen">再生成</button><button class="secondary" id="savePrediction">保存</button><button class="secondary" id="copySets">コピー</button></div><p class="note">適合度は設定条件への一致度であり、当選確率ではありません。</p></div>
- <div class="card"><h2>候補数字ランキング</h2><div class="row"><div><label>集計期間</label><select id="rankWindow"><option value="20">直近20回</option><option value="50">直近50回</option><option value="100">直近100回</option></select></div><div><label>表示</label><select id="rankType"><option value="strong">有力候補</option><option value="weak">除外候補</option></select></div></div><div id="numberRanking"></div></div>
+<section id="home" class="active">
+<div class="card">
+<h2>ダッシュボード</h2>
+<div class="kpi">
+<div><b id="kpiVersion">2.0</b><span>現在バージョン</span></div>
+<div><b>1.62</b><span>Ver.4 平均最高一致</span></div>
+<div><b>17%</b><span>3個以上・100回実績</span></div>
+<div><b>1.78</b><span>ランダム期待値</span></div>
+</div>
+</div>
+<div class="card">
+<h3>現在の評価</h3>
+<p>Ver.4はVer.3より改善しましたが、平均最高一致はランダム期待値を下回っています。Ver.2.0アプリでは、変更前後を同一条件で記録し、改善を確認できた変更だけを採用します。</p>
+</div>
+<div class="notice">すべての6数字の組み合わせは、理論上同じ1等確率です。本アプリのスコアは買い目構成を比較する研究用指標です。</div>
+</section>
 
- <div class="card"><h2>AI総合レポート</h2><div id="aiReport"></div></div>
- <div class="card"><h2>数字ヒートマップ</h2><div class="row"><div><label>評価期間</label><select id="heatWindow"><option value="20">直近20回</option><option value="50" selected>直近50回</option><option value="100">直近100回</option></select></div><div><label>表示基準</label><select id="heatBasis"><option value="score">AI総合点</option><option value="freq">出現頻度</option><option value="gap">出現間隔</option></select></div></div><div id="heatmap" class="heatmap" style="margin-top:12px"></div><p class="note">色の濃さは相対評価です。将来の当選確率を示すものではありません。</p></div>
- <div class="card"><h2>ペア・トリオ分析</h2><div class="actions"><button class="secondary pairPeriod" data-n="50">50回</button><button class="secondary pairPeriod" data-n="100">100回</button><button class="secondary pairPeriod" data-n="200">200回</button></div><div id="pairAnalysis"></div></div>
+<section id="predict">
+<div class="card">
+<h2>次回予想5セット</h2>
+<p class="muted">最新の研究スコアとセット間多様性を使って生成します。</p>
+<div id="sets"></div>
+<button class="primary" id="generateBtn">5セットを再生成</button>
+<button class="secondary" id="savePredictionBtn">今回の購入セットとして保存</button>
+</div>
 </section>
-<section id="verify" class="page">
- <div class="card"><h2>ウォークフォワード検証</h2><div class="actions"><button class="backtest" data-n="50">50回</button><button class="backtest" data-n="100">100回</button><button class="backtest" data-n="200">200回</button><button class="backtest" data-n="0">全期間</button><button class="secondary" id="stopBacktest">停止</button></div><p id="btStatus" class="status"></p><div id="btResult"></div><canvas id="btChart" width="720" height="260"></canvas></div>
- <div class="card"><h2>期間別比較</h2><button id="comparePeriods" class="blue">50・100・200回を比較</button><p id="compareStatus" class="status"></p><div id="periodCompare"></div></div>
- <div class="card"><h2>ランダム基準</h2><div id="baseline"></div></div>
 
- <div class="card"><h2>予想モード実績比較</h2><button id="compareModes" class="blue">標準・分散・高数字を比較</button><p id="modeCompareStatus" class="status"></p><div id="modeCompareResult"></div></div>
- <div class="card"><h2>大量候補評価</h2><div class="row"><div><label>候補数</label><select id="deepCount"><option value="5000">5,000通り</option><option value="20000" selected>20,000通り</option><option value="50000">50,000通り</option></select></div><div><label>選定方式</label><select id="deepMode"><option value="standard">標準</option><option value="spread">分散重視</option><option value="high">高数字重視</option></select></div></div><button id="deepGenerate" style="margin-top:10px">大量評価して5セット作成</button><p id="deepStatus" class="status"></p></div>
+<section id="verify">
+<div class="card">
+<h2>抽選結果の検証</h2>
+<label>回号</label><input id="drawNo" type="number" placeholder="例：2123">
+<label>本数字（6個、カンマ区切り）</label><input id="winningNums" placeholder="例：1, 5, 12, 20, 31, 43">
+<label>ボーナス数字</label><input id="bonusNum" type="number" min="1" max="43">
+<button class="primary" id="verifyBtn">購入5セットと照合</button>
+</div>
+<div id="verifyResult"></div>
+<div class="card">
+<h3>検証履歴</h3>
+<div class="scroll"><table><thead><tr><th>回号</th><th>最高一致</th><th>前回重複</th><th>±1</th><th>B隣接</th><th>合計</th><th>AC</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+</div>
 </section>
-<section id="analysis" class="page">
- <div class="card"><h2>トレンド分析</h2><div id="trendSummary"></div></div>
- <div class="card"><h2>保存予想の実績</h2><div id="performance"></div></div>
- <div class="card"><h2>自動重み調整</h2><div id="weightSummary"></div><div class="actions"><button id="autoTune">直近100回で調整</button><button class="secondary" id="resetWeights">標準重みに戻す</button></div><p id="tuneStatus" class="status"></p></div>
 
- <div class="card"><h2>購入・回収率ダッシュボード</h2><div id="financeSummary"></div><div class="actions" style="margin-top:10px"><button id="recordPayout" class="blue">当選金を記録</button><button id="financeReset" class="danger">収支だけ初期化</button></div><p class="note">予想保存時に5口分を購入額として計上します。実際に購入しなかった場合は履歴画面から調整してください。</p></div>
- <div class="card"><h2>年間収支</h2><div id="yearlyFinance"></div></div>
+<section id="ranking">
+<div class="card">
+<h2>1～43 数字ランキング</h2>
+<div class="scroll"><table><thead><tr><th>順位</th><th>数字</th><th>スコア</th><th>比較</th></tr></thead><tbody id="rankingBody"></tbody></table></div>
+</div>
 </section>
-<section id="filtersPage" class="page">
- <div class="card"><h2>フィルター設定</h2><div id="filterSwitches" class="switches"></div><div class="actions" style="margin-top:11px"><button id="applyFilters">反映</button><button class="secondary" id="resetFilters">標準</button></div></div>
- <div class="card"><h2>通過率</h2><div class="actions"><button class="secondary period" data-n="0">全期間</button><button class="secondary period" data-n="200">200回</button><button class="secondary period" data-n="100">100回</button><button class="secondary period" data-n="50">50回</button></div><div id="filterRates"></div></div>
- <div class="card"><h2>フィルター寄与比較</h2><button id="ablationBtn">直近100回で比較</button><p id="ablationStatus" class="status"></p><div id="ablationResult"></div></div>
-</section>
-<section id="dataPage" class="page">
- <div class="card"><h2>みずほ銀行公式データ自動更新</h2><div class="alert">ロト6・ロト7の公式当せん番号ページをCloudflare Workerで読み取り、未登録回を端末データへ追加します。</div><label>自動更新API URL</label><input id="autoApiUrl" placeholder="https://loto-mizuho-sync.あなたのサブドメイン.workers.dev"><div class="actions" style="margin-top:11px"><button id="saveAutoApi">APIを保存</button><button class="blue" id="syncOfficial">今すぐ公式データ更新</button></div><p id="autoSyncStatus" class="status"></p><p class="note">アプリ起動時にも自動確認します。取得元は、設定されたWorkerがみずほ銀行の指定URLだけを参照します。</p></div>
- <div class="card"><h2>結果を手動追加（非常用）</h2><div class="alert">公式結果を確認して入力してください。保存後、予想履歴と自動照合します。</div><div class="row"><div><label>開催回</label><input id="round" inputmode="numeric"></div><div><label>抽せん日</label><input id="date" type="date"></div></div><label id="mainLabel">本数字</label><input id="mainNums"><label id="bonusLabel">ボーナス</label><input id="bonusNums"><div class="actions" style="margin-top:11px"><button id="addResult">保存・照合</button><button class="secondary" id="official">公式結果を開く</button></div><p id="addMsg" class="status"></p></div>
- <div class="card"><h2>予想・購入履歴</h2><div id="history"></div></div>
- <div class="card"><h2>購入単価設定</h2><div class="row"><div><label>1口単価（円）</label><input id="ticketPrice" inputmode="numeric"></div><div><label>1回の購入口数</label><input id="ticketCount" inputmode="numeric" value="5"></div></div><button id="savePurchaseSettings" style="margin-top:10px">設定保存</button></div><div class="card"><h2>バックアップ</h2><div class="actions"><button class="secondary" id="exportBtn">書き出す</button><label class="btn" for="importFile">読み込む</label><input id="importFile" type="file" accept="application/json" hidden><button class="danger" id="resetBtn">追加分削除</button></div></div>
+
+<section id="settings">
+<div class="card">
+<h2>特徴量設定</h2>
+<p class="muted">重みは端末内に保存されます。極端な変更は過学習につながるため、少しずつ変更してください。</p>
+<div id="featureSettings"></div>
+<button class="primary" id="saveSettingsBtn">設定を保存</button>
+<button class="secondary" id="resetBtn">初期設定に戻す</button>
+</div>
+<div class="card">
+<h3>データ管理</h3>
+<button class="secondary" id="exportBtn">データをJSONで書き出す</button>
+<label>JSONデータを読み込む</label><textarea id="importText" rows="5"></textarea>
+<button class="secondary" id="importBtn">読み込む</button>
+</div>
 </section>
 </main>
-<nav class="tabs"><button data-page="home" class="active">ホーム</button><button data-page="verify">検証</button><button data-page="analysis">分析</button><button data-page="filtersPage">条件</button><button data-page="dataPage">データ</button></nav>
-<script src="app.js"></script></body></html>
+<footer>端末内保存型・オフライン動作対応 | Ver.2.0</footer>
+
+<script>
+const BASE_SCORES={1:16.03,2:14.72,3:12.44,4:6.10,5:17.28,6:8.82,7:8.55,8:17.03,9:5.76,10:3.87,11:7.04,12:5.73,13:5.57,14:6.87,15:6.56,16:7.56,17:6.73,18:12.01,19:6.39,20:11.96,21:9.81,22:4.56,23:6.81,24:3.50,25:3.49,26:7.35,27:11.30,28:7.12,29:3.55,30:8.06,31:8.25,32:8.48,33:6.76,34:8.04,35:17.23,36:15.78,37:10.88,38:10.51,39:4.95,40:12.15,41:7.85,42:13.97,43:10.98};
+const DEFAULT={
+ latest:[12,15,18,21,26,32], latestBonus:41,
+ recent:[[3,8,13,14,16,43],[1,3,10,17,25,26],[12,15,18,21,26,32]],
+ weights:{recent:0.8,slide:1.6,previous:0.4,bonusAdj:0.5,sum:1.0,oddEven:1.0,ac:0.2,diversity:2.0},
+ purchased:[[1,5,8,35,36,42],[2,5,20,27,35,40],[3,8,18,20,35,43],[1,3,18,27,36,40],[2,8,18,21,27,42]],
+ history:[]
+};
+let state=JSON.parse(localStorage.getItem("loto6v2")||JSON.stringify(DEFAULT));
+const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
+$$("nav button").forEach(b=>b.onclick=()=>{$$("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");$$("section").forEach(s=>s.classList.remove("active"));$("#"+b.dataset.tab).classList.add("active")});
+
+function acValue(nums){let d=new Set();for(let i=0;i<nums.length;i++)for(let j=i+1;j<nums.length;j++)d.add(nums[j]-nums[i]);return d.size-5}
+function scoreNumbers(){
+ const freq={};state.recent.flat().forEach(n=>freq[n]=(freq[n]||0)+1);
+ const slide=new Set();state.latest.forEach(n=>{if(n>1)slide.add(n-1);if(n<43)slide.add(n+1)});
+ const badj=new Set([state.latestBonus-1,state.latestBonus+1]);
+ let out=[];
+ for(let n=1;n<=43;n++){let s=BASE_SCORES[n]+(freq[n]||0)*state.weights.recent;if(slide.has(n))s+=state.weights.slide;if(state.latest.includes(n))s+=state.weights.previous;if(badj.has(n))s+=state.weights.bonusAdj;out.push({n,score:+s.toFixed(2)})}
+ return out.sort((a,b)=>b.score-a.score)
+}
+function combs(arr,k,start=0,p=[]){let r=[];if(p.length===k)return [p];for(let i=start;i<=arr.length-(k-p.length);i++)r=r.concat(combs(arr,k,i+1,p.concat(arr[i])));return r}
+function setScore(nums,map){
+ let s=nums.reduce((a,n)=>a+map[n],0),sum=nums.reduce((a,b)=>a+b,0),odd=nums.filter(n=>n%2).length,ac=acValue(nums);
+ s+=Math.max(0,8-Math.abs(sum-125)*.16)*state.weights.sum;
+ s+=(odd>=2&&odd<=4?3:-2)*state.weights.oddEven;
+ s+=(ac>=4&&ac<=9?2:-1.5)*state.weights.ac;
+ return s
+}
+function generate(){
+ const rank=scoreNumbers(), pool=rank.slice(0,30).map(x=>x.n), map=Object.fromEntries(rank.map(x=>[x.n,x.score]));
+ let cand=combs(pool,6).filter(x=>{let sum=x.reduce((a,b)=>a+b,0),odd=x.filter(n=>n%2).length;return sum>=85&&sum<=175&&odd>=1&&odd<=5}).map(x=>({nums:x.sort((a,b)=>a-b),score:setScore(x,map)})).sort((a,b)=>b.score-a.score);
+ let sel=[],targets=[0,0,1,1,2];
+ for(let c of cand){if(sel.some(s=>s.nums.filter(n=>c.nums.includes(n)).length>2))continue;if(c.nums.filter(n=>state.latest.includes(n)).length!==targets[sel.length])continue;sel.push(c);if(sel.length===5)break}
+ state.purchased=sel.map(x=>x.nums);localStorage.setItem("loto6v2",JSON.stringify(state));renderSets()
+}
+function balls(nums){return `<div class="balls">${nums.map(n=>`<span class="ball">${String(n).padStart(2,"0")}</span>`).join("")}</div>`}
+function renderSets(){
+ $("#sets").innerHTML=state.purchased.map((nums,i)=>{let sum=nums.reduce((a,b)=>a+b,0),odd=nums.filter(n=>n%2).length,prev=nums.filter(n=>state.latest.includes(n)).length;return `<div class="set"><div class="set-head"><b>第${i+1}口</b><span class="badge">前回重複 ${prev}</span></div>${balls(nums)}<div class="muted">合計 ${sum} / 偶奇 ${odd}:${6-odd} / AC ${acValue(nums)}</div></div>`}).join("")
+}
+function verify(){
+ let nums=$("#winningNums").value.split(/[,\s、・]+/).map(Number).filter(Boolean).sort((a,b)=>a-b),bonus=+$("#bonusNum").value,no=+$("#drawNo").value;
+ if(nums.length!==6||new Set(nums).size!==6||nums.some(n=>n<1||n>43)){alert("本数字を1～43の異なる6個で入力してください");return}
+ let matches=state.purchased.map(s=>s.filter(n=>nums.includes(n)).length),highest=Math.max(...matches),prevOverlap=nums.filter(n=>state.latest.includes(n)).length;
+ let slide=new Set();state.latest.forEach(n=>{if(n>1)slide.add(n-1);if(n<43)slide.add(n+1)});
+ let slideHits=nums.filter(n=>slide.has(n)).length,badj=nums.filter(n=>[state.latestBonus-1,state.latestBonus+1].includes(n)).length,sum=nums.reduce((a,b)=>a+b,0),ac=acValue(nums);
+ $("#verifyResult").innerHTML=`<div class="card"><h3>照合結果</h3>${state.purchased.map((s,i)=>`<p>第${i+1}口：<b>${matches[i]}個一致</b> ${balls(s.filter(n=>nums.includes(n)))}</p>`).join("")}<p class="${highest>=3?"good":"bad"}">最高一致：${highest}個</p><p>前回重複 ${prevOverlap} / ±1該当 ${slideHits} / B隣接 ${badj} / 合計 ${sum} / AC ${ac}</p></div>`;
+ state.history.unshift({no,nums,bonus,highest,prevOverlap,slideHits,badj,sum,ac});
+ state.latest=nums;state.latestBonus=bonus;state.recent.push(nums);state.recent=state.recent.slice(-30);
+ localStorage.setItem("loto6v2",JSON.stringify(state));renderHistory();renderRanking()
+}
+function renderHistory(){$("#historyBody").innerHTML=state.history.map(x=>`<tr><td>${x.no||"-"}</td><td>${x.highest}</td><td>${x.prevOverlap}</td><td>${x.slideHits}</td><td>${x.badj}</td><td>${x.sum}</td><td>${x.ac}</td></tr>`).join("")||`<tr><td colspan="7">履歴なし</td></tr>`}
+function renderRanking(){let r=scoreNumbers(),max=r[0].score;$("#rankingBody").innerHTML=r.map((x,i)=>`<tr><td>${i+1}</td><td><b>${x.n}</b></td><td>${x.score.toFixed(2)}</td><td><div class="rankbar"><i style="width:${x.score/max*100}%"></i></div></td></tr>`).join("")}
+function renderSettings(){let labels={recent:"直近出現頻度",slide:"±1スライド",previous:"前回数字",bonusAdj:"ボーナス隣接",sum:"合計値",oddEven:"偶奇",ac:"AC値",diversity:"セット多様性"};$("#featureSettings").innerHTML=Object.entries(state.weights).map(([k,v])=>`<label>${labels[k]}：<span id="v-${k}">${v}</span></label><input type="range" min="0" max="3" step="0.1" value="${v}" data-weight="${k}">`).join("");$$("[data-weight]").forEach(x=>x.oninput=()=>$("#v-"+x.dataset.weight).textContent=x.value)}
+$("#generateBtn").onclick=generate;$("#savePredictionBtn").onclick=()=>{localStorage.setItem("loto6v2",JSON.stringify(state));alert("購入5セットとして保存しました")};$("#verifyBtn").onclick=verify;
+$("#saveSettingsBtn").onclick=()=>{$$("[data-weight]").forEach(x=>state.weights[x.dataset.weight]=+x.value);localStorage.setItem("loto6v2",JSON.stringify(state));renderRanking();alert("設定を保存しました")};
+$("#resetBtn").onclick=()=>{if(confirm("初期設定に戻しますか？")){state=JSON.parse(JSON.stringify(DEFAULT));localStorage.setItem("loto6v2",JSON.stringify(state));location.reload()}};
+$("#exportBtn").onclick=()=>{let b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="loto6_ver2_data.json";a.click()};
+$("#importBtn").onclick=()=>{try{state=JSON.parse($("#importText").value);localStorage.setItem("loto6v2",JSON.stringify(state));location.reload()}catch(e){alert("JSON形式を確認してください")}};
+renderSets();renderHistory();renderRanking();renderSettings();
+</script>
+</body></html>
