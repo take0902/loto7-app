@@ -9,13 +9,13 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="stylesheet" href="app.css">
-  <title>ロト6・ロト7 AI Engine Ver.7.0</title>
+  <title>ロト6・ロト7 AI Engine Ver.9.0</title>
 </head>
 <body>
 <header>
   <div>
     <h1>ロト6・ロト7 AI Engine</h1>
-    <p>Ver.7.0 Multi-Window Research</p>
+    <p>Ver.9.0 Weight Optimizer</p>
   </div>
   <button id="installBtn" hidden>アプリを追加</button>
   <div class="game-switch">
@@ -32,6 +32,8 @@
   <button data-tab="validation">検証</button>
   <button data-tab="history">履歴</button>
   <button data-tab="report">レポート</button>
+  <button data-tab="backtest">検証分析</button>
+  <button data-tab="optimizer">最適化</button>
 </nav>
 
 <section id="dashboard" class="active">
@@ -182,9 +184,167 @@
     <div id="setEvaluation"></div>
   </div>
 </section>
+
+<section id="backtest">
+  <div class="card">
+    <h2>ウォークフォワード・バックテスト</h2>
+    <p class="muted">各回の予想には、その回より前の履歴だけを使用します。将来データの混入を避ける検証方式です。</p>
+
+    <label>検証期間</label>
+    <select id="backtestWindow">
+      <option value="100" selected>直近100回</option>
+      <option value="200">直近200回</option>
+      <option value="500">直近500回</option>
+      <option value="all">全期間</option>
+    </select>
+
+    <label>1回あたりの予想口数</label>
+    <select id="backtestSets">
+      <option value="1">1口</option>
+      <option value="3">3口</option>
+      <option value="5" selected>5口</option>
+      <option value="10">10口</option>
+    </select>
+
+    <label>比較する戦略</label>
+    <div class="strategy-checks">
+      <label><input type="checkbox" value="balanced" checked> バランス重視</label>
+      <label><input type="checkbox" value="hot" checked> 直近傾向重視</label>
+      <label><input type="checkbox" value="gap" checked> 空白期間重視</label>
+      <label><input type="checkbox" value="diverse" checked> 分散重視</label>
+    </div>
+
+    <button id="runBacktestBtn" class="primary">バックテストを実行</button>
+    <p id="backtestStatus" class="muted"></p>
+  </div>
+
+  <div class="card">
+    <h3>戦略比較</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>戦略</th>
+            <th>検証回数</th>
+            <th>最高一致</th>
+            <th>平均最高一致</th>
+            <th>3個以上</th>
+            <th>4個以上</th>
+            <th>平均重複</th>
+          </tr>
+        </thead>
+        <tbody id="backtestComparison"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>一致数分布</h3>
+    <div id="backtestDistribution"></div>
+  </div>
+
+  <div class="card">
+    <h3>バックテスト履歴</h3>
+    <div class="table-wrap history">
+      <table>
+        <thead>
+          <tr>
+            <th>回</th>
+            <th>戦略</th>
+            <th>最高一致</th>
+            <th>平均一致</th>
+            <th>本数字</th>
+          </tr>
+        </thead>
+        <tbody id="backtestHistory"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="notice">バックテスト成績が将来の当選を保証するものではありません。抽選は独立事象であり、各組み合わせの理論確率は同じです。</div>
+</section>
+
+
+<section id="optimizer">
+  <div class="card">
+    <h2>ロジック重み最適化</h2>
+    <p class="muted">履歴を訓練期間と検証期間に分離し、複数候補の重みを比較します。検証期間は最適化に使用しません。</p>
+
+    <label>対象期間</label>
+    <select id="optimizerWindow">
+      <option value="300">直近300回</option>
+      <option value="500" selected>直近500回</option>
+      <option value="800">直近800回</option>
+      <option value="all">全期間</option>
+    </select>
+
+    <label>検証期間の割合</label>
+    <select id="holdoutRatio">
+      <option value="0.20">20%</option>
+      <option value="0.25" selected>25%</option>
+      <option value="0.30">30%</option>
+    </select>
+
+    <label>候補重み数</label>
+    <select id="optimizationTrials">
+      <option value="24">24候補（高速）</option>
+      <option value="48" selected>48候補（標準）</option>
+      <option value="96">96候補（詳細）</option>
+    </select>
+
+    <label>1回あたりの評価口数</label>
+    <select id="optimizerSets">
+      <option value="1">1口</option>
+      <option value="3" selected>3口</option>
+      <option value="5">5口</option>
+    </select>
+
+    <button id="runOptimizerBtn" class="primary">重み最適化を実行</button>
+    <p id="optimizerStatus" class="muted"></p>
+  </div>
+
+  <div class="card">
+    <h3>推奨重み</h3>
+    <div id="recommendedWeights"></div>
+    <button id="applyWeightsBtn" class="secondary" disabled>推奨重みを予想に適用</button>
+    <button id="resetWeightsBtn" class="secondary">標準重みに戻す</button>
+  </div>
+
+  <div class="card">
+    <h3>訓練・検証成績</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>区分</th><th>回数</th><th>平均最高一致</th><th>3個以上</th><th>4個以上</th><th>最高一致</th></tr>
+        </thead>
+        <tbody id="optimizerPerformance"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>候補ランキング</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>順位</th><th>Hot</th><th>Gap</th><th>安定性</th><th>直前重複</th><th>訓練</th><th>検証</th></tr>
+        </thead>
+        <tbody id="optimizerRanking"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>過学習チェック</h3>
+    <div id="overfitCheck"></div>
+  </div>
+
+  <div class="notice">最適化は過去データへの適合度を比較する機能です。将来の当選確率を保証したり、理論確率を変えたりするものではありません。</div>
+</section>
+
 </main>
 
-<footer>Ver.7.0｜複数期間分析・分散生成・検証集計</footer>
+<footer>Ver.9.0｜重み最適化・訓練／検証分離・ロバスト評価</footer>
 <script type="module" src="app.js"></script>
 </body>
 </html>
