@@ -1,9 +1,190 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10233f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon.svg"><link rel="stylesheet" href="app.css"><title>ロト6・ロト7 AI Engine Ver.6.0</title></head><body>
-<header><div><h1>ロト6・ロト7 AI Engine</h1><p>Ver.6.0 Data Repair Edition</p></div><button id="installBtn" hidden>アプリを追加</button><div class="game-switch"><button data-game="loto6" class="active">ロト6</button><button data-game="loto7">ロト7</button></div></header>
-<main><nav><button data-tab="dashboard" class="active">ホーム</button><button data-tab="analysis">分析</button><button data-tab="prediction">予想</button><button data-tab="validation">検証</button><button data-tab="history">履歴</button><button data-tab="report">レポート</button></nav>
-<section id="dashboard" class="active"><div class="card"><h2 id="dashboardTitle"></h2><div class="kpis"><article><b id="drawCount"></b><span>内蔵回数</span></article><article><b id="latestNo"></b><span>最新回</span></article><article><b id="latestDate"></b><span>最新日</span></article><article><b id="numberRange"></b><span>数字範囲</span></article></div></div><div class="card"><h3>最新抽選結果</h3><div id="latestBalls"></div><p id="latestBonus" class="muted"></p></div><div class="notice">過去の出現傾向は、将来の各組み合わせの理論確率を変えません。本アプリは買い目分散と検証の研究用です。</div></section>
-<section id="analysis"><div class="card"><h2>期間別分析</h2><label>分析期間</label><select id="analysisWindow"><option value="10">直近10回</option><option value="30">直近30回</option><option value="100" selected>直近100回</option><option value="all">全期間</option></select><div class="kpis"><article><b id="hotNumber"></b><span>最多出現</span></article><article><b id="coldNumber"></b><span>最少出現</span></article><article><b id="averageSum"></b><span>平均合計</span></article><article><b id="averageOdd"></b><span>平均奇数数</span></article></div></div><div class="card"><h3>数字ランキング</h3><div class="table-wrap"><table><thead><tr><th>順位</th><th>数字</th><th>出現</th><th>間隔</th><th>比較</th></tr></thead><tbody id="rankingBody"></tbody></table></div></div></section>
-<section id="prediction"><div class="card"><h2>次回予想5セット</h2><label>分析期間</label><select id="predictionWindow"><option value="30">直近30回</option><option value="100" selected>直近100回</option><option value="all">全期間</option></select><div id="predictionSets"></div><button id="generateBtn" class="primary">5セットを生成</button><button id="saveSetsBtn" class="secondary">購入セットとして保存</button></div></section>
-<section id="validation"><div class="card"><h2>抽選結果との照合</h2><label>回号</label><input id="validationNo" inputmode="numeric"><label id="winningLabel"></label><input id="winningInput" placeholder="カンマ区切り"><label id="bonusLabel"></label><input id="bonusInput" placeholder="カンマ区切り"><button id="validateBtn" class="primary">照合して保存</button></div><div id="validationResult"></div><div class="card"><h3>検証履歴</h3><div class="table-wrap"><table><thead><tr><th>回</th><th>最高一致</th><th>本数字</th></tr></thead><tbody id="validationHistory"></tbody></table></div></div></section>
-<section id="history"><div class="card"><h2>過去抽選履歴</h2><input id="historySearch" placeholder="回号または数字で検索"><div class="table-wrap history"><table><thead><tr><th>回</th><th>日付</th><th>本数字</th><th>ボーナス</th></tr></thead><tbody id="historyBody"></tbody></table></div></div><div class="card"><h3>バックアップ</h3><button id="exportBtn" class="secondary">ユーザーデータを書き出す</button><textarea id="importText" rows="4" placeholder="JSONを貼り付け"></textarea><button id="importBtn" class="secondary">読み込む</button></div></section><section id="report"><div class="card"><h2>AI分析レポート</h2><p class="muted">選択中の期間データを統計的に要約します。将来の当選を保証する評価ではありません。</p><label>レポート期間</label><select id="reportWindow"><option value="30">直近30回</option><option value="100" selected>直近100回</option><option value="all">全期間</option></select><div id="aiReport"></div><button id="copyReportBtn" class="secondary">レポートをコピー</button></div><div class="card"><h3>予想セット構造評価</h3><div id="setEvaluation"></div></div></section></main>
-<footer>Ver.6.0｜ロト6 第1～2122回 / ロト7 第1～687回</footer><script type="module" src="app.js"></script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#10233f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="app.css">
+  <title>ロト6・ロト7 AI Engine Ver.7.0</title>
+</head>
+<body>
+<header>
+  <div>
+    <h1>ロト6・ロト7 AI Engine</h1>
+    <p>Ver.7.0 Multi-Window Research</p>
+  </div>
+  <button id="installBtn" hidden>アプリを追加</button>
+  <div class="game-switch">
+    <button data-game="loto6" class="active">ロト6</button>
+    <button data-game="loto7">ロト7</button>
+  </div>
+</header>
+
+<main>
+<nav>
+  <button data-tab="dashboard" class="active">ホーム</button>
+  <button data-tab="analysis">分析</button>
+  <button data-tab="prediction">予想</button>
+  <button data-tab="validation">検証</button>
+  <button data-tab="history">履歴</button>
+  <button data-tab="report">レポート</button>
+</nav>
+
+<section id="dashboard" class="active">
+  <div class="card">
+    <h2 id="dashboardTitle"></h2>
+    <div class="kpis">
+      <article><b id="drawCount"></b><span>内蔵回数</span></article>
+      <article><b id="latestNo"></b><span>最新回</span></article>
+      <article><b id="latestDate"></b><span>最新日</span></article>
+      <article><b id="numberRange"></b><span>数字範囲</span></article>
+    </div>
+  </div>
+  <div class="card">
+    <h3>最新抽選結果</h3>
+    <div id="latestBalls"></div>
+    <p id="latestBonus" class="muted"></p>
+  </div>
+  <div class="card">
+    <h3>データ状態</h3>
+    <div id="dataHealth"></div>
+  </div>
+  <div class="notice">過去の出現傾向は、将来の各組み合わせの理論確率を変えません。本アプリは買い目分散・構造評価・検証の研究用です。</div>
+</section>
+
+<section id="analysis">
+  <div class="card">
+    <h2>期間別分析</h2>
+    <label>分析期間</label>
+    <select id="analysisWindow">
+      <option value="10">直近10回</option>
+      <option value="30">直近30回</option>
+      <option value="50">直近50回</option>
+      <option value="100" selected>直近100回</option>
+      <option value="200">直近200回</option>
+      <option value="all">全期間</option>
+    </select>
+    <div class="kpis">
+      <article><b id="hotNumber"></b><span>最多出現</span></article>
+      <article><b id="coldNumber"></b><span>最少出現</span></article>
+      <article><b id="averageSum"></b><span>平均合計</span></article>
+      <article><b id="averageOdd"></b><span>平均奇数数</span></article>
+    </div>
+  </div>
+  <div class="card">
+    <h3>数字ランキング</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>順位</th><th>数字</th><th>出現</th><th>間隔</th><th>指数</th><th>比較</th></tr></thead>
+        <tbody id="rankingBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>分布分析</h3>
+    <div id="distributionCharts"></div>
+  </div>
+</section>
+
+<section id="prediction">
+  <div class="card">
+    <h2>次回予想</h2>
+    <label>生成セット数</label>
+    <select id="setCount">
+      <option value="5" selected>5セット</option>
+      <option value="10">10セット</option>
+    </select>
+    <label>生成方針</label>
+    <select id="strategy">
+      <option value="balanced" selected>バランス重視</option>
+      <option value="hot">直近傾向重視</option>
+      <option value="gap">空白期間重視</option>
+      <option value="diverse">分散重視</option>
+    </select>
+    <div id="predictionSets"></div>
+    <button id="generateBtn" class="primary">予想セットを生成</button>
+    <button id="saveSetsBtn" class="secondary">購入候補として保存</button>
+  </div>
+  <div class="card">
+    <h3>候補数字スコア</h3>
+    <p class="muted">直近10・30・50・100・200回と全期間を合成した研究指数です。</p>
+    <div id="candidateScores"></div>
+  </div>
+</section>
+
+<section id="validation">
+  <div class="card">
+    <h2>抽選結果との照合</h2>
+    <label>回号</label>
+    <input id="validationNo" inputmode="numeric">
+    <label id="winningLabel"></label>
+    <input id="winningInput" placeholder="カンマ区切り">
+    <label id="bonusLabel"></label>
+    <input id="bonusInput" placeholder="カンマ区切り">
+    <button id="validateBtn" class="primary">照合して保存</button>
+  </div>
+  <div id="validationResult"></div>
+  <div class="card">
+    <h3>検証成績</h3>
+    <div id="validationSummary" class="kpis"></div>
+  </div>
+  <div class="card">
+    <h3>検証履歴</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>回</th><th>最高一致</th><th>平均一致</th><th>本数字</th></tr></thead>
+        <tbody id="validationHistory"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="history">
+  <div class="card">
+    <h2>過去抽選履歴</h2>
+    <input id="historySearch" placeholder="回号または数字で検索">
+    <div class="table-wrap history">
+      <table>
+        <thead><tr><th>回</th><th>日付</th><th>本数字</th><th>ボーナス</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>バックアップ</h3>
+    <button id="exportBtn" class="secondary">ユーザーデータを書き出す</button>
+    <textarea id="importText" rows="4" placeholder="JSONを貼り付け"></textarea>
+    <button id="importBtn" class="secondary">読み込む</button>
+  </div>
+</section>
+
+<section id="report">
+  <div class="card">
+    <h2>AI分析レポート</h2>
+    <p class="muted">複数期間の統計と現在の予想セットを要約します。当選を保証する評価ではありません。</p>
+    <label>レポート期間</label>
+    <select id="reportWindow">
+      <option value="30">直近30回</option>
+      <option value="50">直近50回</option>
+      <option value="100" selected>直近100回</option>
+      <option value="200">直近200回</option>
+      <option value="all">全期間</option>
+    </select>
+    <div id="aiReport"></div>
+    <button id="copyReportBtn" class="secondary">レポートをコピー</button>
+  </div>
+  <div class="card">
+    <h3>予想セット構造評価</h3>
+    <div id="setEvaluation"></div>
+  </div>
+</section>
+</main>
+
+<footer>Ver.7.0｜複数期間分析・分散生成・検証集計</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

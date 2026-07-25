@@ -1,9 +1,16 @@
-# ロト6・ロト7 AI Engine Ver.6.0
+# ロト6・ロト7 AI Engine Ver.7.0
 
-Ver.5をiPhoneからGitHubへアップロードした際、フォルダ構造が平坦化されても動作するように修正しました。
+## 主な追加
+- 直近10・30・50・100・200回＋全期間の複数期間合成指数
+- 5セット／10セット生成
+- バランス・直近傾向・空白期間・分散重視の4戦略
+- セット構造評価
+- 奇数個数・数字帯の分布表示
+- 候補数字スコア
+- 検証成績の集計
+- データ状態表示
+- PWA・オフライン対応
 
-## GitHub直下に置くファイル
-index.html / app.css / app.js / loto6.json / loto7.json / manifest.webmanifest / service-worker.js / icon.svg / vercel.json / README.md
-
+## 更新方法
 ZIPを展開し、中のファイルをすべて `take0902/loto7-app` にアップロードして上書きしてください。
 VercelはGitHub更新後に通常自動で再デプロイします。

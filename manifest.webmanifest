@@ -1,10 +1,11 @@
 {
-  "name": "ロト6・ロト7 AI Engine Ver.6.0",
-  "short_name": "ロトAI Ver.6",
+  "name": "ロト6・ロト7 AI Engine Ver.7.0",
+  "short_name": "ロトAI Ver.7",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f3f6f9",
   "theme_color": "#10233f",
+  "background_color": "#f3f6f9",
   "icons": [
     {
       "src": "icon.svg",
@@ -12,6 +13,5 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ],
-  "scope": "/"
+  ]
 }
