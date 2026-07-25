@@ -12,7 +12,7 @@ const C=()=>config[game], R=()=>draws[game];
 
 function loadUser(){
   try{
-    const raw=localStorage.getItem("loto67v9")||localStorage.getItem("loto67v6");
+    const raw=localStorage.getItem("loto67v10")||localStorage.getItem("loto67v6");
     const parsed=raw?JSON.parse(raw):structuredClone(defaultUser);
     for(const g of ["loto6","loto7"]){
       parsed[g]??={};
@@ -24,7 +24,7 @@ function loadUser(){
     return parsed;
   }catch{return structuredClone(defaultUser)}
 }
-function save(){localStorage.setItem("loto67v9",JSON.stringify(user))}
+function save(){localStorage.setItem("loto67v10",JSON.stringify(user))}
 async function loadJson(path){
   const r=await fetch(path,{cache:"no-store"});
   if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
@@ -69,6 +69,8 @@ function bind(){
   $("#copyReportBtn").onclick=copyReport;
   $("#runBacktestBtn").onclick=runBacktest;
   $("#runOptimizerBtn").onclick=runOptimizer;
+  $("#themeBtn").onclick=toggleTheme;
+  initTheme();
   $("#applyWeightsBtn").onclick=applyOptimizedWeights;
   $("#resetWeightsBtn").onclick=resetOptimizedWeights;
   let prompt;
@@ -293,6 +295,7 @@ function generate(){
 function render(){
   const c=C(),r=R(),last=r.at(-1);
   $("#dashboardTitle").textContent=c.name+" ダッシュボード";
+  if($("#heroGameTitle"))$("#heroGameTitle").textContent=c.name+" AI分析";
   $("#drawCount").textContent=r.length+"回";
   $("#latestNo").textContent="第"+last.no+"回";
   $("#latestDate").textContent=last.date;
@@ -398,7 +401,7 @@ async function copyReport(){try{await navigator.clipboard.writeText(reportText()
 function exportData(){
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([JSON.stringify(user,null,2)],{type:"application/json"}));
-  a.download="loto67_user_data_v9.json";a.click();
+  a.download="loto67_user_data_v10.json";a.click();
 }
 function importData(){
   try{
@@ -504,6 +507,22 @@ function renderBacktest(){
   </tr>`).join("");
 }
 
+
+
+function initTheme(){
+  const saved=localStorage.getItem("loto67_theme")||"light";
+  document.documentElement.dataset.theme=saved;
+  updateThemeButton();
+}
+function toggleTheme(){
+  const next=document.documentElement.dataset.theme==="dark"?"light":"dark";
+  document.documentElement.dataset.theme=next;
+  localStorage.setItem("loto67_theme",next);
+  updateThemeButton();
+}
+function updateThemeButton(){
+  if($("#themeBtn"))$("#themeBtn").textContent=document.documentElement.dataset.theme==="dark"?"☀️":"🌙";
+}
 
 function normalizeWeights(w){
   const total=w.hot+w.gap+w.stability+w.repeat;

@@ -9,35 +9,50 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon.svg">
   <link rel="stylesheet" href="app.css">
-  <title>ロト6・ロト7 AI Engine Ver.9.0</title>
+  <title>ロト6・ロト7 AI Engine Ver.10.0</title>
 </head>
 <body>
-<header>
-  <div>
-    <h1>ロト6・ロト7 AI Engine</h1>
-    <p>Ver.9.0 Weight Optimizer</p>
+<header class="premium-header">
+  <div class="header-orb orb-one"></div><div class="header-orb orb-two"></div>
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-icon">AI</div>
+      <div><h1>AI Lottery Lab</h1><p>ロト6・ロト7 AI Engine Ver.10.0</p></div>
+    </div>
+    <div class="header-actions">
+      <button id="themeBtn" class="icon-button" aria-label="テーマ切替">🌙</button>
+      <button id="installBtn" class="icon-button" hidden aria-label="アプリを追加">＋</button>
+    </div>
   </div>
-  <button id="installBtn" hidden>アプリを追加</button>
   <div class="game-switch">
-    <button data-game="loto6" class="active">ロト6</button>
-    <button data-game="loto7">ロト7</button>
+    <button data-game="loto6" class="active"><span>6</span>ロト6</button>
+    <button data-game="loto7"><span>7</span>ロト7</button>
   </div>
 </header>
 
 <main>
 <nav>
-  <button data-tab="dashboard" class="active">ホーム</button>
-  <button data-tab="analysis">分析</button>
-  <button data-tab="prediction">予想</button>
-  <button data-tab="validation">検証</button>
-  <button data-tab="history">履歴</button>
-  <button data-tab="report">レポート</button>
-  <button data-tab="backtest">検証分析</button>
-  <button data-tab="optimizer">最適化</button>
+  <button data-tab="dashboard" class="active">🏠<span>ホーム</span></button>
+  <button data-tab="analysis">📊<span>分析</span></button>
+  <button data-tab="prediction">✨<span>予想</span></button>
+  <button data-tab="validation">✅<span>検証</span></button>
+  <button data-tab="history">🗂️<span>履歴</span></button>
+  <button data-tab="report">🧠<span>レポート</span></button>
+  <button data-tab="backtest">📈<span>検証分析</span></button>
+  <button data-tab="optimizer">⚙️<span>最適化</span></button>
 </nav>
 
 <section id="dashboard" class="active">
-  <div class="card">
+  <div class="hero-card">
+    <div class="hero-copy">
+      <span class="eyebrow">TODAY'S AI RESEARCH</span>
+      <h2 id="heroGameTitle">ロト6 AI分析</h2>
+      <p>複数期間の統計・構造評価・バックテストをひとつに統合。</p>
+      <div class="hero-chips"><span>Multi Window</span><span>Backtest</span><span>Optimizer</span></div>
+    </div>
+    <div class="hero-score"><span>ENGINE</span><strong>V10</strong><small>PREMIUM</small></div>
+  </div>
+  <div class="card rainbow-card">
     <h2 id="dashboardTitle"></h2>
     <div class="kpis">
       <article><b id="drawCount"></b><span>内蔵回数</span></article>
@@ -344,7 +359,7 @@
 
 </main>
 
-<footer>Ver.9.0｜重み最適化・訓練／検証分離・ロバスト評価</footer>
+<footer>Ver.10.0｜Colorful Premium UI・ダークモード・アニメーション</footer>
 <script type="module" src="app.js"></script>
 </body>
 </html>
