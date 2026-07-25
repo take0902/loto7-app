@@ -1,30 +1,9 @@
-# ロト6・ロト7 AI Engine Ver.5.0
+# ロト6・ロト7 AI Engine Ver.6.0
 
-## 収録データ
-- ロト6：第1回～第2122回（2026/7/23）
-- ロト7：第1回～第687回（2026/7/24）
+Ver.5をiPhoneからGitHubへアップロードした際、フォルダ構造が平坦化されても動作するように修正しました。
 
-## 主な機能
-- ロト6・ロト7切替
-- 直近10/30/100回・全期間分析
-- 出現ランキング、間隔、平均合計、平均奇数数
-- 次回5セット生成とセット間分散
-- 合計・奇数数・連番・AC値・数字幅の構造表示
-- AI分析レポートとコピー機能
-- 予想セット構造評価
-- 購入セット保存、抽選結果照合、検証履歴
-- 過去履歴検索、JSONバックアップ
-- PWA・オフライン対応
+## GitHub直下に置くファイル
+index.html / app.css / app.js / loto6.json / loto7.json / manifest.webmanifest / service-worker.js / icon.svg / vercel.json / README.md
 
-## GitHubへのアップロード
-1. このZIPをiPhoneの「ファイル」アプリで展開します。
-2. GitHubの `take0902/loto7-app` を開きます。
-3. `Add file` → `Upload files` を選びます。
-4. 展開したフォルダ内のファイルとフォルダをすべてアップロードします。
-5. `Commit changes` を押します。
-
-## Vercel
-GitHub連携済みなら、mainブランチへのコミット後に自動再デプロイされます。新規公開の場合はVercelで対象リポジトリをImportし、Framework PresetはOther、Build CommandとOutput Directoryは空欄でDeployします。
-
-## 注意
-本アプリの評価値は過去履歴の統計・買い目構造を比較する研究用指標です。抽選における各組み合わせの理論上の当選確率を高めるものではありません。
+ZIPを展開し、中のファイルをすべて `take0902/loto7-app` にアップロードして上書きしてください。
+VercelはGitHub更新後に通常自動で再デプロイします。
