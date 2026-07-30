@@ -1,11 +1,11 @@
 {
-  "name": "AI Lottery Lab Ver.10.0",
-  "short_name": "AIロト V10",
+  "name": "ロト6・ロト7 AI Engine Ver.7.0",
+  "short_name": "ロトAI Ver.7",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#6657ff",
-  "background_color": "#f4f7ff",
+  "theme_color": "#10233f",
+  "background_color": "#f3f6f9",
   "icons": [
     {
       "src": "icon.svg",
