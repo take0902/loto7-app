@@ -1,4 +1,4 @@
-// AI Lottery Lab Ver.20.1 修正版 2026-08-01
+// AI Lottery Lab Ver.21.1 最新抽選結果・自動更新強化版 2026-08-01
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -9,6 +9,7 @@ const defaultUser={loto6:{sets:[],savedSets:[],checks:[]},loto7:{sets:[],savedSe
 let user=loadUser();
 let backtestResults={};
 let optimizerResult=null;
+const remoteUpdateState={loto6:{status:"待機中",source:"",checkedAt:"",error:""},loto7:{status:"待機中",source:"",checkedAt:"",error:""}};
 const C=()=>config[game], R=()=>draws[game];
 
 // 公式発表済みで、内蔵JSONへの反映待ちの抽選結果。
@@ -78,6 +79,36 @@ function loadUser(){
   }catch{return structuredClone(defaultUser)}
 }
 function save(){localStorage.setItem("loto67v12",JSON.stringify(user))}
+function createSafetyBackup(reason="自動バックアップ"){
+  try{localStorage.setItem("loto67v12_last_backup",JSON.stringify({reason,date:new Date().toISOString(),user:structuredClone(user)}));return true}catch{return false}
+}
+function restoreSafetyBackup(){
+  try{
+    const raw=localStorage.getItem("loto67v12_last_backup");if(!raw)return alert("復元できるバックアップがありません");
+    const data=JSON.parse(raw);if(!data?.user?.loto6||!data?.user?.loto7)throw new Error("バックアップ形式が不正です");
+    if(!confirm(`${new Date(data.date).toLocaleString("ja-JP")} のバックアップを復元しますか？\n理由：${data.reason||"-"}`))return;
+    user=data.user;save();location.reload();
+  }catch(e){alert(`復元できませんでした：${e.message||e}`)}
+}
+function reviewForPurchase(x){
+  const reviews=user[game].reviews||[];
+  return reviews.find(r=>Number(r.no)===Number(x.drawNo)&&(r.savedId===x.id||r.savedDate===x.date))||reviews.find(r=>Number(r.no)===Number(x.drawNo));
+}
+function bestRankFromReview(review){
+  if(!review?.matches?.length)return null;
+  const order={"1等":1,"2等":2,"3等":3,"4等":4,"5等":5,"6等":6,"はずれ":99};
+  return [...review.matches].sort((a,b)=>(order[a.rank]||99)-(order[b.rank]||99))[0]?.rank||null;
+}
+function duplicateSets(sets){
+  const seen=new Map(),dupes=[];(sets||[]).forEach((a,i)=>{const k=[...a].sort((x,y)=>x-y).join(",");if(seen.has(k))dupes.push([seen.get(k)+1,i+1]);else seen.set(k,i)});return dupes;
+}
+function reviewBalls(set,winning,bonus){return `<div class="balls">${set.map(n=>`<span class="ball${winning.includes(n)?" hit-main":bonus.includes(n)?" hit-bonus":""}">${String(n).padStart(2,"0")}</span>`).join("")}</div>`}
+function injectVer21Styles(){
+  if(document.getElementById("ver21Styles"))return;const style=document.createElement("style");style.id="ver21Styles";
+  style.textContent=`.purchase-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.purchase-tools input,.purchase-tools select{width:100%;box-sizing:border-box}.purchase-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.purchase-summary article{padding:14px;border-radius:14px;background:#f4f6fb;text-align:center}.purchase-summary b{display:block;font-size:1.35rem}.purchase-summary span{font-size:.82rem;color:#6b7280}.purchase-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.purchase-note{white-space:pre-wrap;padding:10px;border-radius:10px;background:#f6f7fb;margin:8px 0}.purchase-status{font-weight:800}.purchase-status.win{color:#c026d3}.purchase-status.pending{color:#b45309}.purchase-status.lose{color:#64748b}.ball.hit-main{background:linear-gradient(135deg,#10b981,#22c55e)!important;box-shadow:0 0 0 4px rgba(16,185,129,.18)}.ball.hit-bonus{background:linear-gradient(135deg,#f59e0b,#facc15)!important;color:#422006!important;box-shadow:0 0 0 4px rgba(245,158,11,.18)}.match-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:.85rem}.match-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.match-legend .m{background:#10b981}.match-legend .b{background:#f59e0b}.duplicate-warning{padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;margin:8px 0}@media(min-width:700px){.purchase-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.purchase-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}`;
+  document.head.appendChild(style)
+}
+function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0/g,"Ver.21.1")})}
 
 function makePurchaseId(){
   return `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -90,6 +121,7 @@ function normalizePurchaseRecord(x,index=0){
     drawNo:Number.isInteger(Number(x?.drawNo))&&Number(x.drawNo)>0?Number(x.drawNo):null,
     date:x?.date||new Date(Date.now()-index*1000).toISOString(),
     updatedAt:x?.updatedAt||x?.date||new Date().toISOString(),
+    note:String(x?.note||""),
     sets
   };
 }
@@ -127,12 +159,70 @@ async function loadJson(path){
   if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
   return data;
 }
+
+function validRemoteDraw(g,d){
+  const c=config[g];
+  return d&&Number.isInteger(Number(d.no))&&Number(d.no)>0&&
+    Array.isArray(d.nums)&&d.nums.length===c.pick&&new Set(d.nums.map(Number)).size===c.pick&&
+    Array.isArray(d.bonus)&&d.bonus.length===c.bonus&&new Set(d.bonus.map(Number)).size===c.bonus&&
+    [...d.nums,...d.bonus].every(n=>Number.isInteger(Number(n))&&Number(n)>=1&&Number(n)<=c.max)&&
+    !d.bonus.some(n=>d.nums.includes(n));
+}
+async function fetchRemoteLatest(g,{silent=false}={}){
+  const state=remoteUpdateState[g];
+  state.status="確認中";state.error="";
+  if(!silent)renderRemoteUpdatePanel();
+  try{
+    const r=await fetch(`/api/latest?game=${encodeURIComponent(g)}&_=${Date.now()}`,{cache:"no-store",headers:{Accept:"application/json"}});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
+    if(!validRemoteDraw(g,data.draw))throw new Error("取得データの形式を確認できませんでした");
+    const draw={...data.draw,no:Number(data.draw.no),nums:data.draw.nums.map(Number).sort((a,b)=>a-b),bonus:data.draw.bonus.map(Number).sort((a,b)=>a-b)};
+    const before=draws[g]?.at(-1)?.no||0;
+    draws[g]=mergeDraws(draws[g]||[],[draw]);
+    upsertManualDraw(g,draw);
+    save();
+    state.status=draw.no>before?"更新完了":"最新確認済み";
+    state.source=data.source||"取得元不明";
+    state.checkedAt=new Date().toISOString();
+    state.error="";
+    return draw;
+  }catch(e){
+    state.status="取得失敗";state.error=String(e.message||e);state.checkedAt=new Date().toISOString();
+    console.warn(`${g} latest update failed`,e);
+    return null;
+  }finally{
+    if(!silent)render();
+  }
+}
+async function refreshAllLatest(){
+  const btn=$("#refreshLatestBtn");if(btn)btn.disabled=true;
+  await Promise.all([fetchRemoteLatest("loto6",{silent:true}),fetchRemoteLatest("loto7",{silent:true})]);
+  render();if(btn)btn.disabled=false;
+}
+function ensureRemoteUpdatePanel(){
+  if($("#remoteUpdatePanel"))return;
+  const health=$("#dataHealth");if(!health)return;
+  const card=document.createElement("div");card.id="remoteUpdatePanel";card.className="card";
+  health.parentElement?.insertAdjacentElement("afterend",card);
+}
+function renderRemoteUpdatePanel(){
+  ensureRemoteUpdatePanel();const box=$("#remoteUpdatePanel");if(!box)return;
+  const s=remoteUpdateState[game],last=R()?.at(-1);
+  const checked=s.checkedAt?new Date(s.checkedAt).toLocaleString("ja-JP"):"未確認";
+  box.innerHTML=`<h2>最新データ自動更新</h2><p><b>${C().name}：第${last?.no||"-"}回</b></p><p class="${s.status==="取得失敗"?"warn":"ok"}">${s.status}</p><p class="muted">最終確認：${checked}${s.source?`<br>取得元：${s.source}`:""}${s.error?`<br>詳細：${s.error}`:""}</p><button id="refreshLatestBtn" class="primary">ロト6・ロト7の最新データを確認</button>`;
+  $("#refreshLatestBtn").onclick=refreshAllLatest;
+}
 async function boot(){
   try{
     draws.loto6=mergeDraws(await loadJson(config.loto6.file),[...supplementalDraws.loto6,...registeredDraws("loto6")]);
     draws.loto7=mergeDraws(await loadJson(config.loto7.file),[...supplementalDraws.loto7,...registeredDraws("loto7")]);
     migratePurchases();
+    injectVer21Styles();
     bind(); render();
+    updateVersionLabels();
+    await Promise.all([fetchRemoteLatest("loto6",{silent:true}),fetchRemoteLatest("loto7",{silent:true})]);
+    render();updateVersionLabels();
     if("serviceWorker" in navigator)navigator.serviceWorker.register("service-worker.js").catch(()=>{});
   }catch(e){
     console.error(e);
@@ -434,7 +524,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();
+  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();
 }
 function renderAnalysis(){
   const o=stats($("#analysisWindow").value),rows=o.rows,max=o.rank[0].c,min=Math.min(...o.rank.map(x=>x.c));
@@ -482,28 +572,15 @@ function saveCurrentSets(){
   if(input===null)return;
   const drawNo=Number(input);
   if(!Number.isInteger(drawNo)||drawNo<=0)return alert("正しい抽選回号を入力してください");
-
+  const dupes=duplicateSets(user[game].sets);
+  if(dupes.length&&!confirm(`同じ購入セットが${dupes.length}組あります。このまま登録しますか？`))return;
   const existing=(user[game].savedSets||[]).find(x=>Number(x.drawNo)===drawNo);
   if(existing&&!confirm(`第${drawNo}回の購入登録が既にあります。現在のセットで上書きしますか？`))return;
-
+  createSafetyBackup(`第${drawNo}回の購入登録前`);
   const now=new Date().toISOString();
-  const record={
-    id:existing?.id||makePurchaseId(),
-    drawNo,
-    date:existing?.date||now,
-    updatedAt:now,
-    sets:user[game].sets.map(a=>[...a]),
-    features:user[game].featureWeights
-  };
-  if(existing){
-    const i=purchaseIndexById(existing.id);
-    user[game].savedSets[i]=record;
-    user[game].reviews=(user[game].reviews||[]).filter(r=>Number(r.no)!==drawNo);
-  }else{
-    user[game].savedSets.unshift(record);
-  }
-  save();renderPurchaseHistory();renderReviewPanel();
-  alert(`第${drawNo}回の購入データとして保存しました`);
+  const record={id:existing?.id||makePurchaseId(),drawNo,date:existing?.date||now,updatedAt:now,note:existing?.note||"",sets:user[game].sets.map(a=>[...a]),features:user[game].featureWeights};
+  if(existing){const i=purchaseIndexById(existing.id);user[game].savedSets[i]=record;user[game].reviews=(user[game].reviews||[]).filter(r=>Number(r.no)!==drawNo)}else user[game].savedSets.unshift(record);
+  save();renderPurchaseHistory();renderReviewPanel();alert(`第${drawNo}回の購入データとして保存しました`);
 }
 function validate(){
   const nums=parseNums($("#winningInput").value),bonus=parseNums($("#bonusInput").value),no=Number($("#validationNo").value);
@@ -563,6 +640,7 @@ function importData(){
   try{
     const x=JSON.parse($("#importText").value);
     if(!x.loto6||!x.loto7)throw Error();
+    createSafetyBackup("データ読込み前");
     user=x;for(const g of ["loto6","loto7"]){user[g].sets??=[];user[g].savedSets??=[];user[g].checks??=[]}
     save();render();alert("読み込みました");
   }catch{alert("JSON形式を確認してください")}
@@ -889,66 +967,29 @@ function resetOptimizedWeights(){
 
 
 function ensurePurchaseManager(){
-  const history=$("#history");
-  if(!history||$("#purchaseManager"))return;
-  const card=document.createElement("div");
-  card.className="card";
-  card.id="purchaseManager";
-  card.innerHTML=`
-    <h2>購入履歴管理</h2>
-    <p class="muted">ロト6・ロト7それぞれを抽選回号ごとに編集・削除・コピー・検証できます。</p>
-    <div id="purchaseHistoryList"></div>
-    <div id="purchaseEditor" hidden>
-      <hr>
-      <h3 id="purchaseEditorTitle">購入データ編集</h3>
-      <input type="hidden" id="purchaseEditId">
-      <label>対象抽選回号</label>
-      <input id="purchaseEditDrawNo" inputmode="numeric">
-      <label>購入セット（1行に1口、カンマ区切り）</label>
-      <textarea id="purchaseEditSets" rows="8"></textarea>
-      <div class="button-row">
-        <button id="purchaseSaveBtn" class="primary">上書き保存</button>
-        <button id="purchaseCancelBtn" class="secondary">キャンセル</button>
-      </div>
-    </div>`;
-  history.insertBefore(card,history.firstChild);
-  $("#purchaseSaveBtn").onclick=savePurchaseEdit;
-  $("#purchaseCancelBtn").onclick=()=>{$("#purchaseEditor").hidden=true};
+  const history=$("#history");if(!history||$("#purchaseManager"))return;
+  const card=document.createElement("div");card.className="card";card.id="purchaseManager";
+  card.innerHTML=`<h2>購入・検証管理</h2><p class="muted">回号別の購入データ、検証状況、当せん結果を一括管理します。</p><div id="purchaseSummary" class="purchase-summary"></div><div class="purchase-tools"><input id="purchaseSearch" placeholder="回号・数字・メモで検索" inputmode="search"><select id="purchaseStatusFilter"><option value="all">すべて</option><option value="pending">未検証</option><option value="win">当せん</option><option value="lose">はずれ</option></select></div><div class="purchase-actions"><button id="purchaseShowAllBtn" class="secondary">全件表示</button><button id="purchaseBackupBtn" class="secondary">安全バックアップ</button><button id="purchaseRestoreBtn" class="secondary">直前状態へ復元</button><button id="purchaseExportBtn" class="secondary">データ書出し</button></div><div id="purchaseHistoryList"></div><div id="purchaseEditor" hidden><hr><h3 id="purchaseEditorTitle">購入データ編集</h3><input type="hidden" id="purchaseEditId"><label>対象抽選回号</label><input id="purchaseEditDrawNo" inputmode="numeric"><label>購入セット（1行に1口、カンマ区切り）</label><textarea id="purchaseEditSets" rows="8"></textarea><label>メモ</label><textarea id="purchaseEditNote" rows="3" placeholder="購入場所、戦略、気付いたことなど"></textarea><div class="button-row"><button id="purchaseSaveBtn" class="primary">上書き保存</button><button id="purchaseCancelBtn" class="secondary">キャンセル</button></div></div>`;
+  history.insertBefore(card,history.firstChild);$("#purchaseSaveBtn").onclick=savePurchaseEdit;$("#purchaseCancelBtn").onclick=()=>{$("#purchaseEditor").hidden=true};$("#purchaseSearch").oninput=renderPurchaseHistory;$("#purchaseStatusFilter").onchange=renderPurchaseHistory;$("#purchaseShowAllBtn").onclick=()=>{$("#purchaseSearch").value="";$("#purchaseStatusFilter").value="all";renderPurchaseHistory()};$("#purchaseBackupBtn").onclick=()=>{createSafetyBackup("手動バックアップ");alert("現在のデータを安全バックアップしました")};$("#purchaseRestoreBtn").onclick=restoreSafetyBackup;$("#purchaseExportBtn").onclick=exportData;
 }
 function renderPurchaseHistory(){
-  ensurePurchaseManager();
-  const box=$("#purchaseHistoryList");
-  if(!box)return;
-  const saved=[...(user[game].savedSets||[])].sort((a,b)=>(Number(b.drawNo)||0)-(Number(a.drawNo)||0)||new Date(b.date)-new Date(a.date));
-  if(!saved.length){
-    box.innerHTML='<p class="muted">購入登録はありません。予想画面の「購入候補として保存」から登録してください。</p>';
-    return;
-  }
-  box.innerHTML=saved.map(x=>`
-    <div class="set purchase-record">
-      <div class="settop">
-        <b>${x.drawNo?`第${x.drawNo}回`:"回号未設定"}</b>
-        <span class="badge">${x.sets.length}口</span>
-      </div>
-      ${x.sets.map((a,i)=>`<div><small>第${i+1}口</small>${balls(a)}</div>`).join("")}
-      <p class="muted">登録：${new Date(x.date).toLocaleString("ja-JP")}${x.updatedAt&&x.updatedAt!==x.date?`／更新：${new Date(x.updatedAt).toLocaleString("ja-JP")}`:""}</p>
-      <div class="button-row">
-        <button class="secondary" data-purchase-edit="${x.id}">編集</button>
-        <button class="secondary" data-purchase-copy="${x.id}">コピー</button>
-        <button class="secondary" data-purchase-review="${x.id}">検証</button>
-        <button class="secondary" data-purchase-delete="${x.id}">削除</button>
-      </div>
-    </div>`).join("");
-  $$("[data-purchase-edit]").forEach(b=>b.onclick=()=>openPurchaseEdit(b.dataset.purchaseEdit));
-  $$("[data-purchase-copy]").forEach(b=>b.onclick=()=>copyPurchase(b.dataset.purchaseCopy));
-  $$("[data-purchase-review]").forEach(b=>b.onclick=()=>openPurchaseReview(b.dataset.purchaseReview));
-  $$("[data-purchase-delete]").forEach(b=>b.onclick=()=>deletePurchase(b.dataset.purchaseDelete));
+  ensurePurchaseManager();const box=$("#purchaseHistoryList");if(!box)return;
+  const all=[...(user[game].savedSets||[])].sort((a,b)=>(Number(b.drawNo)||0)-(Number(a.drawNo)||0)||new Date(b.date)-new Date(a.date));
+  const reviewed=all.filter(x=>reviewForPurchase(x));const winners=all.filter(x=>{const rank=bestRankFromReview(reviewForPurchase(x));return rank&&rank!=="はずれ"});
+  const best=winners.map(x=>bestRankFromReview(reviewForPurchase(x))).sort((a,b)=>Number(a.replace(/\D/g,""))-Number(b.replace(/\D/g,"")))[0]||"なし";
+  $("#purchaseSummary").innerHTML=`<article><b>${all.length}</b><span>購入回数</span></article><article><b>${all.reduce((n,x)=>n+x.sets.length,0)}</b><span>購入口数</span></article><article><b>${reviewed.length}</b><span>検証済み</span></article><article><b>${best}</b><span>最高等級</span></article>`;
+  const q=($("#purchaseSearch")?.value||"").trim().toLowerCase(),status=$("#purchaseStatusFilter")?.value||"all";
+  const saved=all.filter(x=>{const r=reviewForPurchase(x),rank=bestRankFromReview(r),state=!r?"pending":rank&&rank!=="はずれ"?"win":"lose";const hay=[x.drawNo,x.note,purchaseText(x.sets)].join(" ").toLowerCase();return(!q||hay.includes(q))&&(status==="all"||status===state)});
+  if(!saved.length){box.innerHTML=all.length?'<p class="muted">条件に合う購入履歴はありません。</p>':'<p class="muted">購入登録はありません。予想画面の「購入候補として保存」から登録してください。</p>';return}
+  box.innerHTML=saved.map(x=>{const review=reviewForPurchase(x),rank=bestRankFromReview(review),state=!review?"pending":rank&&rank!=="はずれ"?"win":"lose",label=!review?"未検証":rank||"検証済み",dupes=duplicateSets(x.sets);return `<div class="set purchase-record"><div class="settop"><b>${x.drawNo?`第${x.drawNo}回`:"回号未設定"}</b><span class="purchase-status ${state}">${label}</span></div>${x.sets.map((a,i)=>`<div><small>第${i+1}口</small>${balls(a)}</div>`).join("")}${dupes.length?`<div class="duplicate-warning">重複セット：${dupes.map(d=>`第${d[0]}口と第${d[1]}口`).join("、")}</div>`:""}${x.note?`<div class="purchase-note">${String(x.note).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}</div>`:""}<p class="muted">${x.sets.length}口｜登録：${new Date(x.date).toLocaleString("ja-JP")}${x.updatedAt&&x.updatedAt!==x.date?`／更新：${new Date(x.updatedAt).toLocaleString("ja-JP")}`:""}</p><div class="button-row"><button class="secondary" data-purchase-edit="${x.id}">編集</button><button class="secondary" data-purchase-copy="${x.id}">コピー</button><button class="secondary" data-purchase-review="${x.id}">検証</button><button class="secondary" data-purchase-delete="${x.id}">削除</button></div></div>`}).join("");
+  $$('[data-purchase-edit]').forEach(b=>b.onclick=()=>openPurchaseEdit(b.dataset.purchaseEdit));$$('[data-purchase-copy]').forEach(b=>b.onclick=()=>copyPurchase(b.dataset.purchaseCopy));$$('[data-purchase-review]').forEach(b=>b.onclick=()=>openPurchaseReview(b.dataset.purchaseReview));$$('[data-purchase-delete]').forEach(b=>b.onclick=()=>deletePurchase(b.dataset.purchaseDelete));
 }
 function openPurchaseEdit(id){
   const x=purchaseById(id);if(!x)return;
   $("#purchaseEditId").value=x.id;
   $("#purchaseEditDrawNo").value=x.drawNo||"";
   $("#purchaseEditSets").value=purchaseText(x.sets);
+  $("#purchaseEditNote").value=x.note||"";
   $("#purchaseEditorTitle").textContent=`${x.drawNo?`第${x.drawNo}回`:"回号未設定"} 購入データ編集`;
   $("#purchaseEditor").hidden=false;
   $("#purchaseEditor").scrollIntoView({behavior:"smooth",block:"start"});
@@ -964,7 +1005,9 @@ function savePurchaseEdit(){
     if(duplicate&&!confirm(`第${drawNo}回は既に登録されています。このデータを残したまま保存しますか？`))return;
     const sets=parsePurchaseText($("#purchaseEditSets").value);
     const old=user[game].savedSets[i];
-    user[game].savedSets[i]={...old,drawNo,sets,updatedAt:new Date().toISOString()};
+    const dupes=duplicateSets(sets);if(dupes.length&&!confirm(`同じ購入セットが${dupes.length}組あります。このまま保存しますか？`))return;
+    createSafetyBackup(`第${old.drawNo||drawNo}回の購入データ編集前`);
+    user[game].savedSets[i]={...old,drawNo,sets,note:$("#purchaseEditNote").value.trim(),updatedAt:new Date().toISOString()};
     user[game].reviews=(user[game].reviews||[]).filter(r=>Number(r.no)!==drawNo&&Number(r.no)!==Number(old.drawNo));
     user[game].sets=sets.map(a=>[...a]);
     save();
@@ -982,6 +1025,7 @@ async function copyPurchase(id){
 function deletePurchase(id){
   const x=purchaseById(id);if(!x)return;
   if(!confirm(`${x.drawNo?`第${x.drawNo}回`:"回号未設定"}の購入データを削除しますか？`))return;
+  createSafetyBackup(`${x.drawNo?`第${x.drawNo}回`:"回号未設定"}の削除前`);
   user[game].savedSets=user[game].savedSets.filter(y=>y.id!==id);
   if(x.drawNo)user[game].reviews=(user[game].reviews||[]).filter(r=>Number(r.no)!==Number(x.drawNo));
   save();renderPurchaseHistory();renderReviewPanel();
@@ -1158,6 +1202,7 @@ if(idx>=1){
   const reviewData={
   no,winning,bonus,matches,highest,average,features,
   savedDate:saved.date,
+  savedId:saved.id||null,
   date:new Date().toISOString()
 };
 
@@ -1172,8 +1217,8 @@ if(oldIndex>=0){
 }
   save();
 
-  $("#reviewMatches").innerHTML=matches.map((x,i)=>
-    `<div class="set"><div class="settop"><b>第${i+1}口</b><span class="badge">${x.rank}</span></div>${balls(x.set)}<div class="mini-metrics">本数字 ${x.main}個・ボーナス ${x.bonus}個</div></div>`
+  $("#reviewMatches").innerHTML=`<div class="match-legend"><span><i class="m"></i>本数字一致</span><span><i class="b"></i>ボーナス一致</span></div>`+matches.map((x,i)=>
+    `<div class="set"><div class="settop"><b>第${i+1}口</b><span class="badge">${x.rank}</span></div>${reviewBalls(x.set,winning,bonus)}<div class="mini-metrics">本数字 ${x.main}個・ボーナス ${x.bonus}個</div></div>`
   ).join("");
 
   $("#featureEvaluation").innerHTML=Object.entries(features).map(([k,v])=>
@@ -1197,6 +1242,7 @@ if(oldIndex>=0){
     ? `第${no}回：${winners.length}口当せん（${winners.map(x=>x.rank).join("・")}）`
     : `第${no}回のレポートを作成しました（当せんなし）`;
   renderReviewPanel();
+  renderPurchaseHistory();
 }
 
 function applyReviewLearning(){
