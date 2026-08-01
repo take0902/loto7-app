@@ -1,7 +1,6 @@
-Ver.26.0 検証結果
-・JavaScript構文チェック：実施
-・必須DOM ID：実装確認
-・Ver.24～26機能：ロト6・ロト7共通
-・既存購入履歴データ構造：維持
-・第688回手動結果・検証履歴：維持
-・Service Workerキャッシュ名：v26へ更新
+Ver.27.0 検証結果
+・index.html タブ/ID整合確認
+・app.js JavaScript構文確認
+・CSS読込ファイル app.css を同梱
+・service-worker キャッシュ更新
+・ロト6/ロト7共通ロジック

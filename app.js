@@ -1,4 +1,4 @@
-// AI Lottery Lab Ver.26.0 フルセット版 2026-08-01
+// AI Lottery Lab Ver.27.0 フルセット版 2026-08-01
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -246,6 +246,7 @@ function bind(){
     $("#"+b.dataset.tab).classList.add("active");
     if(b.dataset.tab==="report")renderReport();
     if(b.dataset.tab==="lab")renderVer26Lab();
+    if(b.dataset.tab==="simulator")renderSimulatorDefaults();
   });
   $("#analysisWindow").onchange=renderAnalysis;
   $("#reportWindow").onchange=renderReport;
@@ -270,6 +271,8 @@ function bind(){
   if($("#labWindow"))$("#labWindow").onchange=renderVer26Lab;
   if($("#toggleAutoLearningBtn"))$("#toggleAutoLearningBtn").onclick=toggleAutoLearning;
   if($("#resetLearningBtn"))$("#resetLearningBtn").onclick=resetFeatureLearning;
+  if($("#runSimulatorBtn"))$("#runSimulatorBtn").onclick=runConditionSimulator;
+  if($("#resetSimulatorBtn"))$("#resetSimulatorBtn").onclick=resetConditionSimulator;
   let prompt;
   window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();prompt=e;$("#installBtn").hidden=false});
   $("#installBtn").onclick=async()=>{if(prompt){prompt.prompt();await prompt.userChoice;prompt=null;$("#installBtn").hidden=true}};
@@ -531,7 +534,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();
+  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();
 }
 function renderAnalysis(){
   const o=stats($("#analysisWindow").value),rows=o.rows,max=o.rank[0].c,min=Math.min(...o.rank.map(x=>x.c));
@@ -983,7 +986,9 @@ function renderPurchaseHistory(){
   ensurePurchaseManager();
   if($("#labWindow"))$("#labWindow").onchange=renderVer26Lab;
   if($("#toggleAutoLearningBtn"))$("#toggleAutoLearningBtn").onclick=toggleAutoLearning;
-  if($("#resetLearningBtn"))$("#resetLearningBtn").onclick=resetFeatureLearning;const box=$("#purchaseHistoryList");if(!box)return;
+  if($("#resetLearningBtn"))$("#resetLearningBtn").onclick=resetFeatureLearning;
+  if($("#runSimulatorBtn"))$("#runSimulatorBtn").onclick=runConditionSimulator;
+  if($("#resetSimulatorBtn"))$("#resetSimulatorBtn").onclick=resetConditionSimulator;const box=$("#purchaseHistoryList");if(!box)return;
   const all=[...(user[game].savedSets||[])].sort((a,b)=>(Number(b.drawNo)||0)-(Number(a.drawNo)||0)||new Date(b.date)-new Date(a.date));
   const reviewed=all.filter(x=>reviewForPurchase(x));const winners=all.filter(x=>{const rank=bestRankFromReview(reviewForPurchase(x));return rank&&rank!=="はずれ"});
   const best=winners.map(x=>bestRankFromReview(reviewForPurchase(x))).sort((a,b)=>Number(a.replace(/\D/g,""))-Number(b.replace(/\D/g,"")))[0]||"なし";
@@ -1333,5 +1338,59 @@ function renderFilterContribution(){
   box.innerHTML=Object.keys(featureNames).map(k=>{const vals=reviews.map(r=>r.features?.[k]?.score).filter(v=>Number.isFinite(v));const observed=vals.length?mean(vals):.5,weight=weights[k]||1,score=Math.round(clamp(observed*weight/1.5,0,1)*100);return `<div class="filter-row"><b>${featureNames[k]}</b><div class="bar"><i style="width:${score}%"></i></div><em>${score}</em></div>`}).join('')+'<p class="muted">貢献度は直近検証の特徴スコアと現在重みを合成した研究指標です。</p>';
 }
 function renderVer26Lab(){if(!$("#lab"))return;renderNumberHeatmap();renderSetDiagnosisLab();renderLearningState();renderLogicComparison();renderFilterContribution()}
+
+
+// ===== Ver.27 条件シミュレーター =====
+let simulatorInitialized=false;
+function simRows(){const v=$("#simWindow")?.value||"300";return v==="all"?R():R().slice(-Number(v))}
+function classifyCount(value,rule){if(rule==="any")return true;if(rule==="0")return value===0;if(rule==="1")return value===1;if(rule==="2")return value>=2;return true}
+function simulatorRecord(rows,index){
+  const draw=rows[index],prev=index?rows[index-1]:null,m=setMetrics(draw.nums);
+  return {draw,m,repeat:prev?draw.nums.filter(n=>prev.nums.includes(n)).length:0,slide:prev?draw.nums.filter(n=>prev.nums.some(x=>Math.abs(x-n)===1)).length:0};
+}
+function renderSimulatorDefaults(){
+  if(!$("#simulator"))return;
+  if(!simulatorInitialized){
+    const rows=simRows(),sums=rows.map(r=>r.nums.reduce((a,b)=>a+b,0));
+    if($("#simSumMin")&&!$("#simSumMin").value)$("#simSumMin").placeholder=String(Math.round(mean(sums)-std(sums)));
+    if($("#simSumMax")&&!$("#simSumMax").value)$("#simSumMax").placeholder=String(Math.round(mean(sums)+std(sums)));
+    simulatorInitialized=true;
+  }
+  if(!$("#simSummary").innerHTML)$("#simSummary").innerHTML='<article><b>－</b><span>条件一致回</span></article><article><b>－</b><span>一致率</span></article><article><b>－</b><span>平均合計</span></article><article><b>－</b><span>平均AC値</span></article>';
+}
+function resetConditionSimulator(){
+  ["simOdd","simRepeat","simSlide","simConsecutive"].forEach(id=>{if($("#"+id))$("#"+id).value="any"});
+  ["simSumMin","simSumMax","simAcMin","simRangeMin"].forEach(id=>{if($("#"+id))$("#"+id).value=""});
+  $("#simStatus").textContent="条件を初期化しました";$("#simNumberRanking").innerHTML="";$("#simComparison").innerHTML="";$("#simHistory").innerHTML="";simulatorInitialized=false;renderSimulatorDefaults();
+}
+function runConditionSimulator(){
+  const rows=simRows();if(rows.length<2)return alert("検証可能な履歴が不足しています");
+  const oddRule=$("#simOdd").value,repeatRule=$("#simRepeat").value,slideRule=$("#simSlide").value,consRule=$("#simConsecutive").value;
+  const sumMin=$("#simSumMin").value===""?null:Number($("#simSumMin").value),sumMax=$("#simSumMax").value===""?null:Number($("#simSumMax").value),acMin=$("#simAcMin").value===""?null:Number($("#simAcMin").value),rangeMin=$("#simRangeMin").value===""?null:Number($("#simRangeMin").value);
+  const records=rows.map((_,i)=>simulatorRecord(rows,i)).slice(1);
+  const matched=records.filter(x=>{
+    const oddOk=oddRule==="any"||(oddRule==="balanced"&&Math.abs(x.m.odd-C().pick/2)<=1)||(oddRule==="exact"&&x.m.odd===Math.round(C().pick/2));
+    return oddOk&&classifyCount(x.repeat,repeatRule)&&classifyCount(x.slide,slideRule)&&classifyCount(x.m.consecutive,consRule)&&(sumMin===null||x.m.sum>=sumMin)&&(sumMax===null||x.m.sum<=sumMax)&&(acMin===null||x.m.ac>=acMin)&&(rangeMin===null||x.m.range>=rangeMin);
+  });
+  const rate=matched.length/records.length,avgSum=matched.length?mean(matched.map(x=>x.m.sum)):0,avgAc=matched.length?mean(matched.map(x=>x.m.ac)):0;
+  $("#simSummary").innerHTML=`<article><b>${matched.length}</b><span>条件一致回</span></article><article><b>${(rate*100).toFixed(1)}%</b><span>一致率</span></article><article><b>${avgSum.toFixed(1)}</b><span>平均合計</span></article><article><b>${avgAc.toFixed(2)}</b><span>平均AC値</span></article>`;
+  $("#simStatus").textContent=`${records.length}回を検証し、${matched.length}回が条件に一致しました`;
+  renderSimulatorRanking(matched,records);renderSimulatorComparison(matched,records);renderSimulatorHistory(matched);
+}
+function renderSimulatorRanking(matched,records){
+  const box=$("#simNumberRanking");if(!matched.length){box.innerHTML='<p class="muted">条件に一致する回がありません。</p>';return}
+  const count=Array(C().max+1).fill(0);matched.forEach(x=>x.draw.nums.forEach(n=>count[n]++));const ranked=Array.from({length:C().max},(_,i)=>({n:i+1,c:count[i+1]})).sort((a,b)=>b.c-a.c||a.n-b.n),max=Math.max(...ranked.map(x=>x.c),1);
+  box.innerHTML=ranked.slice(0,15).map((x,i)=>`<div class="score-row"><span>${i+1}</span><b>${String(x.n).padStart(2,"0")}</b><div class="bar"><i style="width:${x.c/max*100}%"></i></div><em>${x.c}回</em></div>`).join('');
+}
+function renderSimulatorComparison(matched,records){
+  const box=$("#simComparison");if(!matched.length){box.innerHTML='<p class="muted">比較データなし</p>';return}
+  const metrics=[
+    ["前回重複",x=>x.repeat],["±1スライド",x=>x.slide],["奇数個数",x=>x.m.odd],["合計値",x=>x.m.sum],["AC値",x=>x.m.ac],["高低幅",x=>x.m.range],["連番",x=>x.m.consecutive]
+  ];
+  box.innerHTML='<div class="table-wrap"><table><thead><tr><th>指標</th><th>条件一致回</th><th>基準期間</th><th>差</th></tr></thead><tbody>'+metrics.map(([name,fn])=>{const a=mean(matched.map(fn)),b=mean(records.map(fn)),d=a-b;return `<tr><td>${name}</td><td>${a.toFixed(2)}</td><td>${b.toFixed(2)}</td><td class="${d>0?'ok':d<0?'warn':''}">${d>0?'+':''}${d.toFixed(2)}</td></tr>`}).join('')+'</tbody></table></div>';
+}
+function renderSimulatorHistory(matched){
+  $("#simHistory").innerHTML=[...matched].reverse().slice(0,300).map(x=>`<tr><td>${x.draw.no}</td><td>${x.draw.date||'-'}</td><td>${x.draw.nums.join('・')}</td><td>${x.repeat}</td><td>${x.slide}</td><td>${x.m.sum}</td><td>${x.m.ac}</td></tr>`).join('')||'<tr><td colspan="7">該当なし</td></tr>';
+}
 
 boot();
