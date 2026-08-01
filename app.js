@@ -78,6 +78,48 @@ function loadUser(){
   }catch{return structuredClone(defaultUser)}
 }
 function save(){localStorage.setItem("loto67v12",JSON.stringify(user))}
+
+function makePurchaseId(){
+  return `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+}
+function normalizePurchaseRecord(x,index=0){
+  const sets=Array.isArray(x?.sets)?x.sets.map(a=>[...a].map(Number).sort((a,b)=>a-b)):[];
+  return {
+    ...x,
+    id:x?.id||makePurchaseId(),
+    drawNo:Number.isInteger(Number(x?.drawNo))&&Number(x.drawNo)>0?Number(x.drawNo):null,
+    date:x?.date||new Date(Date.now()-index*1000).toISOString(),
+    updatedAt:x?.updatedAt||x?.date||new Date().toISOString(),
+    sets
+  };
+}
+function migratePurchases(){
+  for(const g of ["loto6","loto7"]){
+    user[g].savedSets=(user[g].savedSets||[]).map(normalizePurchaseRecord);
+  }
+  save();
+}
+function nextDrawNo(g=game){
+  return Number(draws[g]?.at(-1)?.no||0)+1;
+}
+function purchaseById(id){
+  return (user[game].savedSets||[]).find(x=>x.id===id);
+}
+function purchaseIndexById(id){
+  return (user[game].savedSets||[]).findIndex(x=>x.id===id);
+}
+function parsePurchaseText(text){
+  const lines=String(text||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  const sets=lines.map(parseNums);
+  if(!sets.length)throw new Error("購入セットを1口以上入力してください");
+  if(sets.some(a=>a.length!==C().pick))throw new Error(`各口を${C().pick}個の数字で入力してください`);
+  if(sets.some(a=>new Set(a).size!==C().pick))throw new Error("同じ口の中に重複数字があります");
+  if(sets.some(a=>a.some(n=>n<1||n>C().max)))throw new Error(`数字は1～${C().max}で入力してください`);
+  return sets;
+}
+function purchaseText(sets){
+  return (sets||[]).map(a=>a.map(n=>String(n).padStart(2,"0")).join(",")).join("\n");
+}
 async function loadJson(path){
   const r=await fetch(path,{cache:"no-store"});
   if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
@@ -89,6 +131,7 @@ async function boot(){
   try{
     draws.loto6=mergeDraws(await loadJson(config.loto6.file),[...supplementalDraws.loto6,...registeredDraws("loto6")]);
     draws.loto7=mergeDraws(await loadJson(config.loto7.file),[...supplementalDraws.loto7,...registeredDraws("loto7")]);
+    migratePurchases();
     bind(); render();
     if("serviceWorker" in navigator)navigator.serviceWorker.register("service-worker.js").catch(()=>{});
   }catch(e){
@@ -129,6 +172,7 @@ function bind(){
   $("#autoReviewBtn").onclick=runLatestAutoReview;
   $("#runReviewBtn").onclick=runAutoReview;
   $("#applyReviewBtn").onclick=applyReviewLearning;
+  ensurePurchaseManager();
   let prompt;
   window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();prompt=e;$("#installBtn").hidden=false});
   $("#installBtn").onclick=async()=>{if(prompt){prompt.prompt();await prompt.userChoice;prompt=null;$("#installBtn").hidden=true}};
@@ -390,7 +434,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();
+  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();
 }
 function renderAnalysis(){
   const o=stats($("#analysisWindow").value),rows=o.rows,max=o.rank[0].c,min=Math.min(...o.rank.map(x=>x.c));
@@ -433,8 +477,33 @@ function renderCandidateScores(){
 }
 function saveCurrentSets(){
   if(!user[game].sets.length)return alert("先に予想セットを生成してください");
-  user[game].savedSets.unshift({date:new Date().toISOString(),sets:user[game].sets,features:user[game].featureWeights});
-  save();alert("購入候補として保存しました");
+  const suggested=nextDrawNo();
+  const input=prompt(`購入対象の抽選回号を入力してください\n（最新結果の次回は第${suggested}回です）`,String(suggested));
+  if(input===null)return;
+  const drawNo=Number(input);
+  if(!Number.isInteger(drawNo)||drawNo<=0)return alert("正しい抽選回号を入力してください");
+
+  const existing=(user[game].savedSets||[]).find(x=>Number(x.drawNo)===drawNo);
+  if(existing&&!confirm(`第${drawNo}回の購入登録が既にあります。現在のセットで上書きしますか？`))return;
+
+  const now=new Date().toISOString();
+  const record={
+    id:existing?.id||makePurchaseId(),
+    drawNo,
+    date:existing?.date||now,
+    updatedAt:now,
+    sets:user[game].sets.map(a=>[...a]),
+    features:user[game].featureWeights
+  };
+  if(existing){
+    const i=purchaseIndexById(existing.id);
+    user[game].savedSets[i]=record;
+    user[game].reviews=(user[game].reviews||[]).filter(r=>Number(r.no)!==drawNo);
+  }else{
+    user[game].savedSets.unshift(record);
+  }
+  save();renderPurchaseHistory();renderReviewPanel();
+  alert(`第${drawNo}回の購入データとして保存しました`);
 }
 function validate(){
   const nums=parseNums($("#winningInput").value),bonus=parseNums($("#bonusInput").value),no=Number($("#validationNo").value);
@@ -818,6 +887,121 @@ function resetOptimizedWeights(){
 }
 
 
+
+function ensurePurchaseManager(){
+  const history=$("#history");
+  if(!history||$("#purchaseManager"))return;
+  const card=document.createElement("div");
+  card.className="card";
+  card.id="purchaseManager";
+  card.innerHTML=`
+    <h2>購入履歴管理</h2>
+    <p class="muted">ロト6・ロト7それぞれを抽選回号ごとに編集・削除・コピー・検証できます。</p>
+    <div id="purchaseHistoryList"></div>
+    <div id="purchaseEditor" hidden>
+      <hr>
+      <h3 id="purchaseEditorTitle">購入データ編集</h3>
+      <input type="hidden" id="purchaseEditId">
+      <label>対象抽選回号</label>
+      <input id="purchaseEditDrawNo" inputmode="numeric">
+      <label>購入セット（1行に1口、カンマ区切り）</label>
+      <textarea id="purchaseEditSets" rows="8"></textarea>
+      <div class="button-row">
+        <button id="purchaseSaveBtn" class="primary">上書き保存</button>
+        <button id="purchaseCancelBtn" class="secondary">キャンセル</button>
+      </div>
+    </div>`;
+  history.insertBefore(card,history.firstChild);
+  $("#purchaseSaveBtn").onclick=savePurchaseEdit;
+  $("#purchaseCancelBtn").onclick=()=>{$("#purchaseEditor").hidden=true};
+}
+function renderPurchaseHistory(){
+  ensurePurchaseManager();
+  const box=$("#purchaseHistoryList");
+  if(!box)return;
+  const saved=[...(user[game].savedSets||[])].sort((a,b)=>(Number(b.drawNo)||0)-(Number(a.drawNo)||0)||new Date(b.date)-new Date(a.date));
+  if(!saved.length){
+    box.innerHTML='<p class="muted">購入登録はありません。予想画面の「購入候補として保存」から登録してください。</p>';
+    return;
+  }
+  box.innerHTML=saved.map(x=>`
+    <div class="set purchase-record">
+      <div class="settop">
+        <b>${x.drawNo?`第${x.drawNo}回`:"回号未設定"}</b>
+        <span class="badge">${x.sets.length}口</span>
+      </div>
+      ${x.sets.map((a,i)=>`<div><small>第${i+1}口</small>${balls(a)}</div>`).join("")}
+      <p class="muted">登録：${new Date(x.date).toLocaleString("ja-JP")}${x.updatedAt&&x.updatedAt!==x.date?`／更新：${new Date(x.updatedAt).toLocaleString("ja-JP")}`:""}</p>
+      <div class="button-row">
+        <button class="secondary" data-purchase-edit="${x.id}">編集</button>
+        <button class="secondary" data-purchase-copy="${x.id}">コピー</button>
+        <button class="secondary" data-purchase-review="${x.id}">検証</button>
+        <button class="secondary" data-purchase-delete="${x.id}">削除</button>
+      </div>
+    </div>`).join("");
+  $$("[data-purchase-edit]").forEach(b=>b.onclick=()=>openPurchaseEdit(b.dataset.purchaseEdit));
+  $$("[data-purchase-copy]").forEach(b=>b.onclick=()=>copyPurchase(b.dataset.purchaseCopy));
+  $$("[data-purchase-review]").forEach(b=>b.onclick=()=>openPurchaseReview(b.dataset.purchaseReview));
+  $$("[data-purchase-delete]").forEach(b=>b.onclick=()=>deletePurchase(b.dataset.purchaseDelete));
+}
+function openPurchaseEdit(id){
+  const x=purchaseById(id);if(!x)return;
+  $("#purchaseEditId").value=x.id;
+  $("#purchaseEditDrawNo").value=x.drawNo||"";
+  $("#purchaseEditSets").value=purchaseText(x.sets);
+  $("#purchaseEditorTitle").textContent=`${x.drawNo?`第${x.drawNo}回`:"回号未設定"} 購入データ編集`;
+  $("#purchaseEditor").hidden=false;
+  $("#purchaseEditor").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function savePurchaseEdit(){
+  try{
+    const id=$("#purchaseEditId").value;
+    const i=purchaseIndexById(id);
+    if(i<0)throw new Error("編集対象が見つかりません");
+    const drawNo=Number($("#purchaseEditDrawNo").value);
+    if(!Number.isInteger(drawNo)||drawNo<=0)throw new Error("正しい抽選回号を入力してください");
+    const duplicate=(user[game].savedSets||[]).find(x=>x.id!==id&&Number(x.drawNo)===drawNo);
+    if(duplicate&&!confirm(`第${drawNo}回は既に登録されています。このデータを残したまま保存しますか？`))return;
+    const sets=parsePurchaseText($("#purchaseEditSets").value);
+    const old=user[game].savedSets[i];
+    user[game].savedSets[i]={...old,drawNo,sets,updatedAt:new Date().toISOString()};
+    user[game].reviews=(user[game].reviews||[]).filter(r=>Number(r.no)!==drawNo&&Number(r.no)!==Number(old.drawNo));
+    user[game].sets=sets.map(a=>[...a]);
+    save();
+    $("#purchaseEditor").hidden=true;
+    renderPurchaseHistory();renderReviewPanel();renderSets();
+    alert(`第${drawNo}回の購入データを更新しました。検証履歴は再検証できるよう削除しました。`);
+  }catch(e){alert(e.message||String(e))}
+}
+async function copyPurchase(id){
+  const x=purchaseById(id);if(!x)return;
+  const text=`${C().name} 第${x.drawNo||"-"}回\n${purchaseText(x.sets)}`;
+  try{await navigator.clipboard.writeText(text);alert("購入データをコピーしました")}
+  catch{prompt("下記をコピーしてください",text)}
+}
+function deletePurchase(id){
+  const x=purchaseById(id);if(!x)return;
+  if(!confirm(`${x.drawNo?`第${x.drawNo}回`:"回号未設定"}の購入データを削除しますか？`))return;
+  user[game].savedSets=user[game].savedSets.filter(y=>y.id!==id);
+  if(x.drawNo)user[game].reviews=(user[game].reviews||[]).filter(r=>Number(r.no)!==Number(x.drawNo));
+  save();renderPurchaseHistory();renderReviewPanel();
+}
+function openPurchaseReview(id){
+  const index=(user[game].savedSets||[]).findIndex(x=>x.id===id);
+  const x=user[game].savedSets[index];if(!x)return;
+  const nav=$('[data-tab="review"]');if(nav)nav.click();
+  $("#reviewSavedSet").value=String(index);
+  if(x.drawNo){
+    $("#reviewDrawNo").value=x.drawNo;
+    const draw=R().find(d=>Number(d.no)===Number(x.drawNo));
+    if(draw){
+      $("#reviewWinning").value=draw.nums.join(",");
+      $("#reviewBonus").value=draw.bonus.join(",");
+    }
+  }
+  $("#reviewStatus").textContent=`${x.drawNo?`第${x.drawNo}回`:"選択した"}購入データを読み込みました`;
+}
+
 let pendingReviewAdjustment=null;
 const featureNames={repeat:"前回重複",slide:"±1スライド",bonusAdj:"ボーナス隣接",oddEven:"偶奇",sum:"合計値",ac:"AC値",range:"高低幅",consecutive:"連番"};
 
@@ -825,7 +1009,7 @@ function renderReviewPanel(){
   if(!$("#reviewSavedSet"))return;
   const saved=user[game].savedSets||[],reviews=user[game].reviews||[];
   $("#reviewSavedSet").innerHTML=saved.length
-    ? saved.map((x,i)=>`<option value="${i}">${new Date(x.date).toLocaleString("ja-JP")}｜${x.sets.length}口</option>`).join("")
+    ? saved.map((x,i)=>`<option value="${i}">${x.drawNo?`第${x.drawNo}回｜`:"回号未設定｜"}${new Date(x.date).toLocaleString("ja-JP")}｜${x.sets.length}口</option>`).join("")
     : '<option value="">保存済み予想なし</option>';
 
   const latest=R().at(-1);
@@ -877,7 +1061,8 @@ function runLatestAutoReview(){
   if(!latest)return alert("抽選データがありません");
   if(!saved.length)return alert("購入した5セットを先に保存してください");
 
-  $("#reviewSavedSet").value="0";
+  const matchingIndex=saved.findIndex(x=>Number(x.drawNo)===Number(latest.no));
+  $("#reviewSavedSet").value=String(matchingIndex>=0?matchingIndex:0);
 
   const inputNo=Number($("#reviewDrawNo").value);
   const inputWinning=parseNums($("#reviewWinning").value);
@@ -908,6 +1093,7 @@ function runAutoReview(){
   if(winning.length!==C().pick)return alert(`本数字を${C().pick}個入力してください`);
   if(bonus.length!==C().bonus)return alert(`ボーナス数字を${C().bonus}個入力してください`);
   if(!Number.isInteger(no)||no<=0)return alert("正しい抽選回号を入力してください");
+  if(saved.drawNo&&Number(saved.drawNo)!==no&&!confirm(`選択中の購入データは第${saved.drawNo}回です。第${no}回として検証を続けますか？`))return;
   if(new Set(winning).size!==C().pick||winning.some(n=>n<1||n>C().max))return alert("本数字に重複または範囲外の数字があります");
   if(new Set(bonus).size!==C().bonus||bonus.some(n=>n<1||n>C().max)||bonus.some(n=>winning.includes(n)))return alert("ボーナス数字に重複・範囲外・本数字との重複があります");
 
