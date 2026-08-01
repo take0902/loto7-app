@@ -1,4 +1,4 @@
-// AI Lottery Lab Ver.22.0 安定データ更新版 2026-08-01
+// AI Lottery Lab Ver.23.0 フルセット安定版 2026-08-01
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}

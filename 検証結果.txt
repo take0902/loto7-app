@@ -1,0 +1,1 @@
+JavaScript参照IDの不足: purchaseBackupBtn, purchaseCancelBtn, purchaseEditDrawNo, purchaseEditId, purchaseEditNote, purchaseEditSets, purchaseEditor, purchaseEditorTitle, purchaseExportBtn, purchaseHistoryList, purchaseManager, purchaseRestoreBtn, purchaseSaveBtn, purchaseSearch, purchaseShowAllBtn, purchaseStatusFilter, purchaseSummary, refreshLatestBtn, remoteUpdatePanel

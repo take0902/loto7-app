@@ -1,395 +1,42 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#10233f">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icon.svg">
-  <link rel="stylesheet" href="app.css">
-  <title>ロト6・ロト7 AI Engine Ver.12.0</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6657ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="app.css?v=23.0">
+<title>AI Lottery Lab Ver.23.0</title>
 </head>
 <body>
 <header class="premium-header">
-  <div class="header-orb orb-one"></div><div class="header-orb orb-two"></div>
-  <div class="header-top">
-    <div class="brand">
-      <div class="brand-icon">AI</div>
-      <div><h1>AI Lottery Lab</h1><p>ロト6・ロト7 AI Engine Ver.12.0</p></div>
-    </div>
-    <div class="header-actions">
-      <button id="themeBtn" class="icon-button" aria-label="テーマ切替">🌙</button>
-      <button id="installBtn" class="icon-button" hidden aria-label="アプリを追加">＋</button>
-    </div>
-  </div>
-  <div class="game-switch">
-    <button data-game="loto6" class="active"><span>6</span>ロト6</button>
-    <button data-game="loto7"><span>7</span>ロト7</button>
-  </div>
+<div class="header-orb orb-one"></div><div class="header-orb orb-two"></div>
+<div class="header-top"><div class="brand"><div class="brand-icon">AI</div><div><h1>AI Lottery Lab</h1><p>ロト6・ロト7 AI Engine Ver.23.0</p></div></div><div class="header-actions"><button id="themeBtn" class="icon-button" aria-label="テーマ切替">🌙</button><button id="installBtn" class="icon-button" hidden aria-label="アプリ追加">＋</button></div></div>
+<div class="game-switch"><button data-game="loto6" class="active"><span>6</span>ロト6</button><button data-game="loto7"><span>7</span>ロト7</button></div>
 </header>
-
 <main>
 <nav>
-  <button data-tab="dashboard" class="active">🏠<span>ホーム</span></button>
-  <button data-tab="analysis">📊<span>分析</span></button>
-  <button data-tab="prediction">✨<span>予想</span></button>
-  <button data-tab="validation">✅<span>検証</span></button>
-  <button data-tab="history">🗂️<span>履歴</span></button>
-  <button data-tab="report">🧠<span>レポート</span></button>
-  <button data-tab="backtest">📈<span>検証分析</span></button>
-  <button data-tab="optimizer">⚙️<span>最適化</span></button>
-<button data-tab="review">🧪<span>自動検証</span></button>
+<button data-tab="dashboard" class="active">🏠<span>ホーム</span></button><button data-tab="analysis">📊<span>分析</span></button><button data-tab="prediction">✨<span>予想</span></button><button data-tab="validation">✅<span>検証</span></button><button data-tab="history">🗂️<span>履歴</span></button><button data-tab="report">🧠<span>レポート</span></button><button data-tab="backtest">📈<span>検証分析</span></button><button data-tab="optimizer">⚙️<span>最適化</span></button><button data-tab="review">🧪<span>自動検証</span></button>
 </nav>
-
 <section id="dashboard" class="active">
-  <div class="hero-card">
-    <div class="hero-copy">
-      <span class="eyebrow">TODAY'S AI RESEARCH</span>
-      <h2 id="heroGameTitle">ロト6 AI分析</h2>
-      <p>複数期間の統計・構造評価・バックテストをひとつに統合。</p>
-      <div class="hero-chips"><span>Multi Window</span><span>Backtest</span><span>Optimizer</span></div>
-    </div>
-    <div class="hero-score"><span>ENGINE</span><strong>V10</strong><small>PREMIUM</small></div>
-  </div>
-  <div class="card rainbow-card">
-    <h2 id="dashboardTitle"></h2>
-    <div class="kpis">
-      <article><b id="drawCount"></b><span>内蔵回数</span></article>
-      <article><b id="latestNo"></b><span>最新回</span></article>
-      <article><b id="latestDate"></b><span>最新日</span></article>
-      <article><b id="numberRange"></b><span>数字範囲</span></article>
-    </div>
-  </div>
-  <div class="card">
-    <h3>最新抽選結果</h3>
-    <div id="latestBalls"></div>
-    <p id="latestBonus" class="muted"></p>
-  </div>
-  <div class="card">
-    <h3>データ状態</h3>
-    <div id="dataHealth"></div>
-  </div>
-  <div class="notice">過去の出現傾向は、将来の各組み合わせの理論確率を変えません。本アプリは買い目分散・構造評価・検証の研究用です。</div>
+<div class="hero-card"><div class="hero-copy"><span class="eyebrow">TODAY'S AI RESEARCH</span><h2 id="heroGameTitle">ロト6 AI分析</h2><p>複数期間の統計・構造評価・バックテストを統合。</p><div class="hero-chips"><span>Multi Window</span><span>Backtest</span><span>Optimizer</span></div></div><div class="hero-score"><span>ENGINE</span><strong>V23</strong><small>FULL</small></div></div>
+<div class="card rainbow-card"><h2 id="dashboardTitle"></h2><div class="kpis"><article><b id="drawCount"></b><span>内蔵回数</span></article><article><b id="latestNo"></b><span>最新回</span></article><article><b id="latestDate"></b><span>最新日</span></article><article><b id="numberRange"></b><span>数字範囲</span></article></div></div>
+<div class="card"><h3>最新抽選結果</h3><div id="latestBalls"></div><p id="latestBonus" class="muted"></p></div>
+<div class="card"><h3>データ状態</h3><div id="dataHealth"></div></div>
+<div class="notice">過去の出現傾向は将来の理論確率を変えません。本アプリは買い目分散・構造評価・検証の研究用です。</div>
 </section>
-
-<section id="analysis">
-  <div class="card">
-    <h2>期間別分析</h2>
-    <label>分析期間</label>
-    <select id="analysisWindow">
-      <option value="10">直近10回</option>
-      <option value="30">直近30回</option>
-      <option value="50">直近50回</option>
-      <option value="100" selected>直近100回</option>
-      <option value="200">直近200回</option>
-      <option value="all">全期間</option>
-    </select>
-    <div class="kpis">
-      <article><b id="hotNumber"></b><span>最多出現</span></article>
-      <article><b id="coldNumber"></b><span>最少出現</span></article>
-      <article><b id="averageSum"></b><span>平均合計</span></article>
-      <article><b id="averageOdd"></b><span>平均奇数数</span></article>
-    </div>
-  </div>
-  <div class="card">
-    <h3>数字ランキング</h3>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>順位</th><th>数字</th><th>出現</th><th>間隔</th><th>指数</th><th>比較</th></tr></thead>
-        <tbody id="rankingBody"></tbody>
-      </table>
-    </div>
-  </div>
-  <div class="card">
-    <h3>分布分析</h3>
-    <div id="distributionCharts"></div>
-  </div>
-</section>
-
-<section id="prediction">
-  <div class="card">
-    <h2>次回予想</h2>
-    <label>生成セット数</label>
-    <select id="setCount">
-      <option value="5" selected>5セット</option>
-      <option value="10">10セット</option>
-    </select>
-    <label>生成方針</label>
-    <select id="strategy">
-      <option value="balanced" selected>バランス重視</option>
-      <option value="hot">直近傾向重視</option>
-      <option value="gap">空白期間重視</option>
-      <option value="diverse">分散重視</option>
-    </select>
-    <div id="predictionSets"></div>
-    <button id="generateBtn" class="primary">予想セットを生成</button>
-    <button id="saveSetsBtn" class="secondary">購入候補として保存</button>
-  </div>
-  <div class="card">
-    <h3>候補数字スコア</h3>
-    <p class="muted">直近10・30・50・100・200回と全期間を合成した研究指数です。</p>
-    <div id="candidateScores"></div>
-  </div>
-</section>
-
-<section id="validation">
-  <div class="card">
-    <h2>抽選結果との照合</h2>
-    <label>回号</label>
-    <input id="validationNo" inputmode="numeric">
-    <label id="winningLabel"></label>
-    <input id="winningInput" placeholder="カンマ区切り">
-    <label id="bonusLabel"></label>
-    <input id="bonusInput" placeholder="カンマ区切り">
-    <button id="validateBtn" class="primary">照合して保存</button>
-  </div>
-  <div id="validationResult"></div>
-  <div class="card">
-    <h3>検証成績</h3>
-    <div id="validationSummary" class="kpis"></div>
-  </div>
-  <div class="card">
-    <h3>検証履歴</h3>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>回</th><th>最高一致</th><th>平均一致</th><th>本数字</th></tr></thead>
-        <tbody id="validationHistory"></tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-<section id="history">
-  <div class="card">
-    <h2>過去抽選履歴</h2>
-    <input id="historySearch" placeholder="回号または数字で検索">
-    <div class="table-wrap history">
-      <table>
-        <thead><tr><th>回</th><th>日付</th><th>本数字</th><th>ボーナス</th></tr></thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-    </div>
-  </div>
-  <div class="card">
-    <h3>バックアップ</h3>
-    <button id="exportBtn" class="secondary">ユーザーデータを書き出す</button>
-    <textarea id="importText" rows="4" placeholder="JSONを貼り付け"></textarea>
-    <button id="importBtn" class="secondary">読み込む</button>
-  </div>
-</section>
-
-<section id="report">
-  <div class="card">
-    <h2>AI分析レポート</h2>
-    <p class="muted">複数期間の統計と現在の予想セットを要約します。当選を保証する評価ではありません。</p>
-    <label>レポート期間</label>
-    <select id="reportWindow">
-      <option value="30">直近30回</option>
-      <option value="50">直近50回</option>
-      <option value="100" selected>直近100回</option>
-      <option value="200">直近200回</option>
-      <option value="all">全期間</option>
-    </select>
-    <div id="aiReport"></div>
-    <button id="copyReportBtn" class="secondary">レポートをコピー</button>
-  </div>
-  <div class="card">
-    <h3>予想セット構造評価</h3>
-    <div id="setEvaluation"></div>
-  </div>
-</section>
-
-<section id="backtest">
-  <div class="card">
-    <h2>ウォークフォワード・バックテスト</h2>
-    <p class="muted">各回の予想には、その回より前の履歴だけを使用します。将来データの混入を避ける検証方式です。</p>
-
-    <label>検証期間</label>
-    <select id="backtestWindow">
-      <option value="100" selected>直近100回</option>
-      <option value="200">直近200回</option>
-      <option value="500">直近500回</option>
-      <option value="all">全期間</option>
-    </select>
-
-    <label>1回あたりの予想口数</label>
-    <select id="backtestSets">
-      <option value="1">1口</option>
-      <option value="3">3口</option>
-      <option value="5" selected>5口</option>
-      <option value="10">10口</option>
-    </select>
-
-    <label>比較する戦略</label>
-    <div class="strategy-checks">
-      <label><input type="checkbox" value="balanced" checked> バランス重視</label>
-      <label><input type="checkbox" value="hot" checked> 直近傾向重視</label>
-      <label><input type="checkbox" value="gap" checked> 空白期間重視</label>
-      <label><input type="checkbox" value="diverse" checked> 分散重視</label>
-    </div>
-
-    <button id="runBacktestBtn" class="primary">バックテストを実行</button>
-    <p id="backtestStatus" class="muted"></p>
-  </div>
-
-  <div class="card">
-    <h3>戦略比較</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>戦略</th>
-            <th>検証回数</th>
-            <th>最高一致</th>
-            <th>平均最高一致</th>
-            <th>3個以上</th>
-            <th>4個以上</th>
-            <th>平均重複</th>
-          </tr>
-        </thead>
-        <tbody id="backtestComparison"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>一致数分布</h3>
-    <div id="backtestDistribution"></div>
-  </div>
-
-  <div class="card">
-    <h3>バックテスト履歴</h3>
-    <div class="table-wrap history">
-      <table>
-        <thead>
-          <tr>
-            <th>回</th>
-            <th>戦略</th>
-            <th>最高一致</th>
-            <th>平均一致</th>
-            <th>本数字</th>
-          </tr>
-        </thead>
-        <tbody id="backtestHistory"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="notice">バックテスト成績が将来の当選を保証するものではありません。抽選は独立事象であり、各組み合わせの理論確率は同じです。</div>
-</section>
-
-
-<section id="optimizer">
-  <div class="card">
-    <h2>ロジック重み最適化</h2>
-    <p class="muted">履歴を訓練期間と検証期間に分離し、複数候補の重みを比較します。検証期間は最適化に使用しません。</p>
-
-    <label>対象期間</label>
-    <select id="optimizerWindow">
-      <option value="300">直近300回</option>
-      <option value="500" selected>直近500回</option>
-      <option value="800">直近800回</option>
-      <option value="all">全期間</option>
-    </select>
-
-    <label>検証期間の割合</label>
-    <select id="holdoutRatio">
-      <option value="0.20">20%</option>
-      <option value="0.25" selected>25%</option>
-      <option value="0.30">30%</option>
-    </select>
-
-    <label>候補重み数</label>
-    <select id="optimizationTrials">
-      <option value="24">24候補（高速）</option>
-      <option value="48" selected>48候補（標準）</option>
-      <option value="96">96候補（詳細）</option>
-    </select>
-
-    <label>1回あたりの評価口数</label>
-    <select id="optimizerSets">
-      <option value="1">1口</option>
-      <option value="3" selected>3口</option>
-      <option value="5">5口</option>
-    </select>
-
-    <button id="runOptimizerBtn" class="primary">重み最適化を実行</button>
-    <p id="optimizerStatus" class="muted"></p>
-  </div>
-
-  <div class="card">
-    <h3>推奨重み</h3>
-    <div id="recommendedWeights"></div>
-    <button id="applyWeightsBtn" class="secondary" disabled>推奨重みを予想に適用</button>
-    <button id="resetWeightsBtn" class="secondary">標準重みに戻す</button>
-  </div>
-
-  <div class="card">
-    <h3>訓練・検証成績</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>区分</th><th>回数</th><th>平均最高一致</th><th>3個以上</th><th>4個以上</th><th>最高一致</th></tr>
-        </thead>
-        <tbody id="optimizerPerformance"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>候補ランキング</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>順位</th><th>Hot</th><th>Gap</th><th>安定性</th><th>直前重複</th><th>訓練</th><th>検証</th></tr>
-        </thead>
-        <tbody id="optimizerRanking"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>過学習チェック</h3>
-    <div id="overfitCheck"></div>
-  </div>
-
-  <div class="notice">最適化は過去データへの適合度を比較する機能です。将来の当選確率を保証したり、理論確率を変えたりするものではありません。</div>
-</section>
-
-
-<section id="review">
-  <div class="card">
-    <h2>自動検証レポート</h2>
-    <p class="muted">保存済み予想セットと抽選結果を照合し、特徴量を評価します。</p>
-    <label>保存済み予想</label><select id="reviewSavedSet"></select>
-    <label>抽選回号</label><input id="reviewDrawNo" inputmode="numeric">
-    <label>本数字</label><input id="reviewWinning" placeholder="カンマ区切り">
-    <label>ボーナス数字</label><input id="reviewBonus" placeholder="カンマ区切り">
-    <div class="button-row"><button id="autoReviewBtn" class="primary">最新結果で自動検証</button><button id="runReviewBtn" class="secondary">入力内容で検証</button></div>
-    <p id="reviewStatus" class="muted"></p>
-  </div>
-  <div class="card"><h3>セット別一致結果</h3><div id="reviewMatches"></div></div>
-  <div class="card"><h3>特徴量評価</h3><div id="featureEvaluation"></div></div>
-  <div class="card">
-    <h3>改善提案</h3><div id="improvementReport"></div>
-    <button id="applyReviewBtn" class="secondary" disabled>次回予想へ反映</button>
-  </div>
-  <div class="card"><h3>AI学習コメント</h3><div id="learningComment" class="report-box"></div></div>
-  <div class="card"><h3>的中成績推移</h3><div id="reviewTrend"></div></div>
-  <div class="card">
-    <h3>累積評価</h3><div id="reviewSummary" class="kpis"></div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>特徴量</th><th>評価回数</th><th>有効</th><th>有効率</th><th>重み</th></tr></thead>
-      <tbody id="featureHistory"></tbody>
-    </table></div>
-  </div>
-</section>
-
+<section id="analysis"><div class="card"><h2>期間別分析</h2><label>分析期間</label><select id="analysisWindow"><option value="10">直近10回</option><option value="30">直近30回</option><option value="50">直近50回</option><option value="100" selected>直近100回</option><option value="200">直近200回</option><option value="all">全期間</option></select><div class="kpis"><article><b id="hotNumber"></b><span>最多出現</span></article><article><b id="coldNumber"></b><span>最少出現</span></article><article><b id="averageSum"></b><span>平均合計</span></article><article><b id="averageOdd"></b><span>平均奇数数</span></article></div></div><div class="card"><h3>数字ランキング</h3><div class="table-wrap"><table><thead><tr><th>順位</th><th>数字</th><th>出現</th><th>間隔</th><th>指数</th><th>比較</th></tr></thead><tbody id="rankingBody"></tbody></table></div></div><div class="card"><h3>分布分析</h3><div id="distributionCharts"></div></div></section>
+<section id="prediction"><div class="card"><h2>次回予想</h2><label>生成セット数</label><select id="setCount"><option value="5" selected>5セット</option><option value="10">10セット</option></select><label>生成方針</label><select id="strategy"><option value="balanced" selected>バランス重視</option><option value="hot">直近傾向重視</option><option value="gap">空白期間重視</option><option value="diverse">分散重視</option></select><div id="predictionSets"></div><button id="generateBtn" class="primary">予想セットを生成</button><button id="saveSetsBtn" class="secondary">購入候補として保存</button></div><div class="card"><h3>候補数字スコア</h3><div id="candidateScores"></div></div></section>
+<section id="validation"><div class="card"><h2>抽選結果との照合</h2><label>回号</label><input id="validationNo" inputmode="numeric"><label id="winningLabel"></label><input id="winningInput" placeholder="カンマ区切り"><label id="bonusLabel"></label><input id="bonusInput" placeholder="カンマ区切り"><button id="validateBtn" class="primary">照合して保存</button></div><div id="validationResult"></div><div class="card"><h3>検証成績</h3><div id="validationSummary" class="kpis"></div></div><div class="card"><h3>検証履歴</h3><div class="table-wrap"><table><thead><tr><th>回</th><th>最高一致</th><th>平均一致</th><th>本数字</th></tr></thead><tbody id="validationHistory"></tbody></table></div></div></section>
+<section id="history"><div class="card"><h2>過去抽選履歴</h2><input id="historySearch" placeholder="回号または数字で検索"><div class="table-wrap history"><table><thead><tr><th>回</th><th>日付</th><th>本数字</th><th>ボーナス</th></tr></thead><tbody id="historyBody"></tbody></table></div></div><div class="card"><h3>バックアップ</h3><button id="exportBtn" class="secondary">ユーザーデータを書き出す</button><textarea id="importText" rows="4" placeholder="JSONを貼り付け"></textarea><button id="importBtn" class="secondary">読み込む</button></div></section>
+<section id="report"><div class="card"><h2>AI分析レポート</h2><label>レポート期間</label><select id="reportWindow"><option value="30">直近30回</option><option value="50">直近50回</option><option value="100" selected>直近100回</option><option value="200">直近200回</option><option value="all">全期間</option></select><div id="aiReport"></div><button id="copyReportBtn" class="secondary">レポートをコピー</button></div><div class="card"><h3>予想セット構造評価</h3><div id="setEvaluation"></div></div></section>
+<section id="backtest"><div class="card"><h2>ウォークフォワード・バックテスト</h2><label>検証期間</label><select id="backtestWindow"><option value="100" selected>直近100回</option><option value="200">直近200回</option><option value="500">直近500回</option><option value="all">全期間</option></select><label>1回あたりの予想口数</label><select id="backtestSets"><option value="1">1口</option><option value="3">3口</option><option value="5" selected>5口</option><option value="10">10口</option></select><label>比較する戦略</label><div class="strategy-checks"><label><input type="checkbox" value="balanced" checked>バランス重視</label><label><input type="checkbox" value="hot" checked>直近傾向重視</label><label><input type="checkbox" value="gap" checked>空白期間重視</label><label><input type="checkbox" value="diverse" checked>分散重視</label></div><button id="runBacktestBtn" class="primary">バックテストを実行</button><p id="backtestStatus" class="muted"></p></div><div class="card"><h3>戦略比較</h3><div class="table-wrap"><table><thead><tr><th>戦略</th><th>検証回数</th><th>最高一致</th><th>平均最高一致</th><th>3個以上</th><th>4個以上</th><th>平均重複</th></tr></thead><tbody id="backtestComparison"></tbody></table></div></div><div class="card"><h3>一致数分布</h3><div id="backtestDistribution"></div></div><div class="card"><h3>バックテスト履歴</h3><div class="table-wrap history"><table><thead><tr><th>回</th><th>戦略</th><th>最高一致</th><th>平均一致</th><th>本数字</th></tr></thead><tbody id="backtestHistory"></tbody></table></div></div></section>
+<section id="optimizer"><div class="card"><h2>ロジック重み最適化</h2><label>対象期間</label><select id="optimizerWindow"><option value="300">直近300回</option><option value="500" selected>直近500回</option><option value="800">直近800回</option><option value="all">全期間</option></select><label>検証期間の割合</label><select id="holdoutRatio"><option value="0.20">20%</option><option value="0.25" selected>25%</option><option value="0.30">30%</option></select><label>候補重み数</label><select id="optimizationTrials"><option value="24">24候補</option><option value="48" selected>48候補</option><option value="96">96候補</option></select><label>評価口数</label><select id="optimizerSets"><option value="1">1口</option><option value="3" selected>3口</option><option value="5">5口</option></select><button id="runOptimizerBtn" class="primary">重み最適化を実行</button><p id="optimizerStatus" class="muted"></p></div><div class="card"><h3>推奨重み</h3><div id="recommendedWeights"></div><button id="applyWeightsBtn" class="secondary" disabled>推奨重みを適用</button><button id="resetWeightsBtn" class="secondary">標準重みに戻す</button></div><div class="card"><h3>訓練・検証成績</h3><div class="table-wrap"><table><thead><tr><th>区分</th><th>回数</th><th>平均最高一致</th><th>3個以上</th><th>4個以上</th><th>最高一致</th></tr></thead><tbody id="optimizerPerformance"></tbody></table></div></div><div class="card"><h3>候補ランキング</h3><div class="table-wrap"><table><thead><tr><th>順位</th><th>Hot</th><th>Gap</th><th>安定性</th><th>直前重複</th><th>訓練</th><th>検証</th></tr></thead><tbody id="optimizerRanking"></tbody></table></div></div><div class="card"><h3>過学習チェック</h3><div id="overfitCheck"></div></div></section>
+<section id="review"><div class="card"><h2>自動検証レポート</h2><label>保存済み予想</label><select id="reviewSavedSet"></select><label>抽選回号</label><input id="reviewDrawNo" inputmode="numeric"><label>本数字</label><input id="reviewWinning" placeholder="カンマ区切り"><label>ボーナス数字</label><input id="reviewBonus" placeholder="カンマ区切り"><div class="button-row"><button id="autoReviewBtn" class="primary">最新結果で自動検証</button><button id="runReviewBtn" class="secondary">入力内容で検証</button></div><p id="reviewStatus" class="muted"></p></div><div class="card"><h3>セット別一致結果</h3><div id="reviewMatches"></div></div><div class="card"><h3>特徴量評価</h3><div id="featureEvaluation"></div></div><div class="card"><h3>改善提案</h3><div id="improvementReport"></div><button id="applyReviewBtn" class="secondary" disabled>次回予想へ反映</button></div><div class="card"><h3>AI学習コメント</h3><div id="learningComment" class="report-box"></div></div><div class="card"><h3>的中成績推移</h3><div id="reviewTrend"></div></div><div class="card"><h3>累積評価</h3><div id="reviewSummary" class="kpis"></div><div class="table-wrap"><table><thead><tr><th>特徴量</th><th>評価回数</th><th>有効</th><th>有効率</th><th>重み</th></tr></thead><tbody id="featureHistory"></tbody></table></div></div></section>
 </main>
-
-<footer>Ver.12.0｜ワンタップ検証・学習重み・信頼度・成績推移</footer>
-<script type="module" src="app.js"></script>
-</body>
-</html>
+<footer>Ver.23.0｜フルセット更新・購入履歴・自動検証・学習重み</footer>
+<script src="app.js?v=23.0"></script>
+</body></html>

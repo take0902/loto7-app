@@ -1,11 +1,19 @@
-AI Lottery Lab Ver.22.0 安定版
+AI Lottery Lab Ver.23.0 フルセット更新
 
-更新するファイル
-・app.js
-・latest.json
+【重要】
+このZIPには画面・CSS・JavaScript・PWA・Vercel設定など、更新に必要なプログラムファイルをすべて収録しています。
+既存の loto6.json と loto7.json は全履歴データのため、GitHub上にあるものをそのまま保持してください。ZIPには誤って履歴を消さないため含めていません。
 
-GitHubの Add file → Upload files から2ファイルを選び、Commit changesを押してください。
-コード編集は不要です。
+更新方法
+1. ZIPを展開
+2. GitHubの loto7-app → Add file → Upload files
+3. 展開したファイルをすべて選択
+4. Commit changes
+5. Vercel反映後、Safariを完全に閉じて再度開く
+6. 表示が古い場合はSafariの再読み込みを長押しして更新
 
-この版は、存在しない /api/latest を使わないため404になりません。
-重要：latest.jsonは静的ファイルです。今回の最新結果は収録済みですが、将来の抽選結果を自動で書き換える機能ではありません。完全自動更新にはGitHub Actions等の定期処理が別途必要です。
+収録ファイル
+index.html / app.css / style.css / app.js / latest.json / manifest.webmanifest / manifest.json / icon.svg / service-worker.js / vercel.json
+
+履歴データ
+loto6.json・loto7.jsonはGitHub上の既存ファイルを維持。最新結果の控えは *_latest_backup.json に収録。

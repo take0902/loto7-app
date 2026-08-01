@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="96" fill="#10233f"/>
-<circle cx="176" cy="256" r="92" fill="#fff"/>
-<circle cx="336" cy="256" r="92" fill="#fff"/>
-<text x="176" y="286" text-anchor="middle" font-family="Arial,sans-serif" font-size="92" font-weight="700" fill="#2f75b5">6</text>
-<text x="336" y="286" text-anchor="middle" font-family="Arial,sans-serif" font-size="92" font-weight="700" fill="#6f42c1">7</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6657ff"/><stop offset="1" stop-color="#16bff4"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#g)"/><rect x="80" y="80" width="352" height="352" rx="90" fill="white"/><text x="256" y="310" text-anchor="middle" font-family="Arial,sans-serif" font-size="170" font-weight="900" fill="#5b46ed">AI</text></svg>
