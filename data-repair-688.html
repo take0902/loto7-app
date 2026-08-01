@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AI Lottery Lab データ修復</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;background:#f4f6fb;color:#172033;margin:0}
+  main{max-width:680px;margin:auto;padding:24px 16px}
+  .card{background:#fff;border-radius:18px;padding:20px;box-shadow:0 8px 28px rgba(20,32,60,.10)}
+  h1{font-size:23px;margin:0 0 14px}
+  .ok{background:#eaf8ef;color:#136b38;border:1px solid #bfe8cf;padding:14px;border-radius:12px;font-weight:700}
+  .err{background:#fff0f0;color:#9d2525;border:1px solid #f1c4c4;padding:14px;border-radius:12px;font-weight:700}
+  pre{white-space:pre-wrap;background:#f6f8fc;padding:14px;border-radius:12px;line-height:1.7;font-size:14px}
+  button,a{display:block;width:100%;box-sizing:border-box;border:0;border-radius:12px;padding:14px;margin-top:14px;font-size:16px;font-weight:700;text-align:center;text-decoration:none}
+  button{background:#1f6feb;color:#fff}
+  a{background:#edf2f8;color:#172033}
+  small{display:block;color:#687386;margin-top:12px;line-height:1.6}
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>第688回 購入データ修復</h1>
+    <div id="status">修復処理を実行しています…</div>
+    <pre>第1口  08,11,12,20,22,25,37
+第2口  06,07,09,12,22,34,35
+第3口  04,06,10,12,21,35,36
+第4口  06,07,15,19,20,29,34
+第5口  06,09,12,15,20,26,37</pre>
+    <button id="repair">もう一度修復する</button>
+    <a href="./">アプリへ戻る</a>
+    <small>このページは、同じVercelドメイン内の端末保存データだけを修復します。ロト6の保存データや他回の履歴は変更しません。</small>
+  </div>
+</main>
+<script>
+const STORAGE_KEYS=["loto67v12","loto67v11","loto67v6"];
+const fixedSets=[
+ [8,11,12,20,22,25,37],
+ [6,7,9,12,22,34,35],
+ [4,6,10,12,21,35,36],
+ [6,7,15,19,20,29,34],
+ [6,9,12,15,20,26,37]
+];
+
+function repair(){
+  const status=document.getElementById("status");
+  try{
+    const sourceKey=STORAGE_KEYS.find(k=>localStorage.getItem(k));
+    const raw=sourceKey?localStorage.getItem(sourceKey):null;
+    const user=raw?JSON.parse(raw):{loto6:{},loto7:{}};
+    user.loto6??={};
+    user.loto7??={};
+    user.loto7.savedSets=Array.isArray(user.loto7.savedSets)?user.loto7.savedSets:[];
+    user.loto7.reviews=Array.isArray(user.loto7.reviews)?user.loto7.reviews:[];
+
+    const now=new Date().toISOString();
+    const replacement={
+      date:now,
+      drawNo:688,
+      sets:fixedSets.map(x=>[...x]),
+      features:user.loto7.featureWeights||null,
+      corrected:true,
+      correctedAt:now
+    };
+
+    // 第688回に紐づく保存データがあれば置換。現行仕様では回号がないため、最新データも置換対象。
+    const idx=user.loto7.savedSets.findIndex(x=>Number(x?.drawNo)===688 || Number(x?.no)===688);
+    if(idx>=0) user.loto7.savedSets[idx]=replacement;
+    else if(user.loto7.savedSets.length) user.loto7.savedSets[0]=replacement;
+    else user.loto7.savedSets.unshift(replacement);
+
+    // 自動検証が最新保存データ(index 0)を使うため、必ず先頭へ移動。
+    user.loto7.savedSets=user.loto7.savedSets.filter((_,i)=>i!==idx && !(idx<0 && i===0));
+    user.loto7.savedSets.unshift(replacement);
+
+    // 誤った第688回レポートを削除し、正しい5口で再検証できる状態にする。
+    user.loto7.reviews=user.loto7.reviews.filter(r=>Number(r?.no)!==688);
+
+    // 画面上の現在セットも正しい5口へ合わせる。
+    user.loto7.sets=fixedSets.map(x=>[...x]);
+
+    localStorage.setItem("loto67v12",JSON.stringify(user));
+    status.className="ok";
+    status.textContent="修復完了：第688回の購入5口を正しい内容へ上書きしました。アプリへ戻り「最新結果で自動検証」を押してください。";
+  }catch(e){
+    status.className="err";
+    status.textContent="修復に失敗しました："+(e?.message||e);
+  }
+}
+document.getElementById("repair").addEventListener("click",repair);
+repair();
+</script>
+</body>
+</html>
