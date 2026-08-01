@@ -1,4 +1,4 @@
-// AI Lottery Lab Ver.23.0 フルセット安定版 2026-08-01
+// AI Lottery Lab Ver.26.0 フルセット版 2026-08-01
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -74,6 +74,8 @@ function loadUser(){
       parsed[g].reviews??=[];
       parsed[g].manualDraws??=[];
       parsed[g].featureWeights??={repeat:1,slide:1,bonusAdj:1,oddEven:1,sum:1,ac:1,range:1,consecutive:1};
+      parsed[g].autoLearning??=true;
+      parsed[g].learningLog??=[];
     }
     return parsed;
   }catch{return structuredClone(defaultUser)}
@@ -243,6 +245,7 @@ function bind(){
     $$("section").forEach(s=>s.classList.remove("active"));
     $("#"+b.dataset.tab).classList.add("active");
     if(b.dataset.tab==="report")renderReport();
+    if(b.dataset.tab==="lab")renderVer26Lab();
   });
   $("#analysisWindow").onchange=renderAnalysis;
   $("#reportWindow").onchange=renderReport;
@@ -264,6 +267,9 @@ function bind(){
   $("#runReviewBtn").onclick=runAutoReview;
   $("#applyReviewBtn").onclick=applyReviewLearning;
   ensurePurchaseManager();
+  if($("#labWindow"))$("#labWindow").onchange=renderVer26Lab;
+  if($("#toggleAutoLearningBtn"))$("#toggleAutoLearningBtn").onclick=toggleAutoLearning;
+  if($("#resetLearningBtn"))$("#resetLearningBtn").onclick=resetFeatureLearning;
   let prompt;
   window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();prompt=e;$("#installBtn").hidden=false});
   $("#installBtn").onclick=async()=>{if(prompt){prompt.prompt();await prompt.userChoice;prompt=null;$("#installBtn").hidden=true}};
@@ -509,7 +515,7 @@ function generate(){
   }
   while(selected.length<count&&candidates[selected.length])selected.push(candidates[selected.length]);
   user[game].sets=selected.slice(0,count).map(x=>x.set);
-  save();renderSets();renderCandidateScores();renderReport();
+  save();renderSets();renderCandidateScores();renderReport();renderVer26Lab();
 }
 function render(){
   const c=C(),r=R(),last=r.at(-1);
@@ -525,7 +531,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();
+  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();
 }
 function renderAnalysis(){
   const o=stats($("#analysisWindow").value),rows=o.rows,max=o.rank[0].c,min=Math.min(...o.rank.map(x=>x.c));
@@ -974,7 +980,10 @@ function ensurePurchaseManager(){
   history.insertBefore(card,history.firstChild);$("#purchaseSaveBtn").onclick=savePurchaseEdit;$("#purchaseCancelBtn").onclick=()=>{$("#purchaseEditor").hidden=true};$("#purchaseSearch").oninput=renderPurchaseHistory;$("#purchaseStatusFilter").onchange=renderPurchaseHistory;$("#purchaseShowAllBtn").onclick=()=>{$("#purchaseSearch").value="";$("#purchaseStatusFilter").value="all";renderPurchaseHistory()};$("#purchaseBackupBtn").onclick=()=>{createSafetyBackup("手動バックアップ");alert("現在のデータを安全バックアップしました")};$("#purchaseRestoreBtn").onclick=restoreSafetyBackup;$("#purchaseExportBtn").onclick=exportData;
 }
 function renderPurchaseHistory(){
-  ensurePurchaseManager();const box=$("#purchaseHistoryList");if(!box)return;
+  ensurePurchaseManager();
+  if($("#labWindow"))$("#labWindow").onchange=renderVer26Lab;
+  if($("#toggleAutoLearningBtn"))$("#toggleAutoLearningBtn").onclick=toggleAutoLearning;
+  if($("#resetLearningBtn"))$("#resetLearningBtn").onclick=resetFeatureLearning;const box=$("#purchaseHistoryList");if(!box)return;
   const all=[...(user[game].savedSets||[])].sort((a,b)=>(Number(b.drawNo)||0)-(Number(a.drawNo)||0)||new Date(b.date)-new Date(a.date));
   const reviewed=all.filter(x=>reviewForPurchase(x));const winners=all.filter(x=>{const rank=bestRankFromReview(reviewForPurchase(x));return rank&&rank!=="はずれ"});
   const best=winners.map(x=>bestRankFromReview(reviewForPurchase(x))).sort((a,b)=>Number(a.replace(/\D/g,""))-Number(b.replace(/\D/g,"")))[0]||"なし";
@@ -1216,6 +1225,7 @@ if(oldIndex>=0){
 }else{
   user[game].reviews.unshift(reviewData);
 }
+  if(user[game].autoLearning)applyReviewLearningInternal(pendingReviewAdjustment,`第${no}回 自動検証`);
   save();
 
   $("#reviewMatches").innerHTML=`<div class="match-legend"><span><i class="m"></i>本数字一致</span><span><i class="b"></i>ボーナス一致</span></div>`+matches.map((x,i)=>
@@ -1248,17 +1258,80 @@ if(oldIndex>=0){
 
 function applyReviewLearning(){
   if(!pendingReviewAdjustment)return;
-  const count=(user[game].reviews||[]).length;
-  const damping=count<5?.65:count<15?.45:.30;
-  Object.entries(pendingReviewAdjustment).forEach(([k,delta])=>{
-    user[game].featureWeights[k]=clamp((user[game].featureWeights[k]||1)+delta*damping,.5,1.5);
-  });
-  save();
-  pendingReviewAdjustment=null;
+  applyReviewLearningInternal(pendingReviewAdjustment,"手動反映");
+  save();pendingReviewAdjustment=null;
   $("#applyReviewBtn").disabled=true;
-  renderReviewPanel();
-  renderSets();
+  renderReviewPanel();renderSets();renderVer26Lab();
   alert("学習重みを更新し、次回予想へ反映しました");
 }
+
+
+// ===== Ver.24～26 AIロジック研究所 =====
+function gradeFromScore(score){return score>=90?"S":score>=80?"A":score>=68?"B":score>=55?"C":"D"}
+function featureOccurrence(rows,key){
+  if(!rows.length)return 0;let ok=0;
+  rows.forEach((r,i)=>{
+    const prev=i?rows[i-1]:null,m=setMetrics(r.nums);let yes=false;
+    if(key==="repeat"&&prev)yes=r.nums.filter(n=>prev.nums.includes(n)).length>=1;
+    if(key==="slide"&&prev)yes=r.nums.filter(n=>prev.nums.some(x=>Math.abs(x-n)===1)).length>=1;
+    if(key==="bonusAdj"&&prev)yes=r.nums.filter(n=>prev.bonus.some(x=>Math.abs(x-n)===1)).length>=1;
+    if(key==="oddEven")yes=Math.abs(m.odd-C().pick/2)<=1;
+    if(key==="sum"){
+      const sums=rows.map(x=>x.nums.reduce((a,b)=>a+b,0)),lo=mean(sums)-std(sums),hi=mean(sums)+std(sums);yes=m.sum>=lo&&m.sum<=hi;
+    }
+    if(key==="ac")yes=m.ac>=Math.max(2,C().pick-3);
+    if(key==="range")yes=m.range>=C().max*.45;
+    if(key==="consecutive")yes=m.consecutive<=1;
+    if(yes)ok++;
+  });return ok/rows.length;
+}
+function diagnosisComment(set,score){
+  const m=setMetrics(set),comments=[];
+  if(Math.abs(m.odd-C().pick/2)<=1)comments.push("偶奇は標準域");else comments.push("偶奇に偏り");
+  if(m.consecutive<=1)comments.push("連番は適正");else comments.push("連番が多め");
+  if(m.ac>=Math.max(2,C().pick-3))comments.push("AC値は分散型");else comments.push("差分の重複が多め");
+  if(score>=80)comments.push("複数期間指数との整合性が高い");
+  return comments.join("・");
+}
+function renderNumberHeatmap(){
+  const box=$("#numberHeatmap");if(!box)return;
+  const w=$("#labWindow")?.value||"100",st=stats(w),max=Math.max(...st.rank.map(x=>x.c),1),min=Math.min(...st.rank.map(x=>x.c));
+  const scoreMap=new Map(multiScore().map(x=>[x.n,x.total]));const maxScore=Math.max(...scoreMap.values(),1);
+  box.innerHTML=Array.from({length:C().max},(_,i)=>i+1).map(n=>{
+    const r=st.rank.find(x=>x.n===n),freq=(r.c-min)/Math.max(max-min,1),idx=(scoreMap.get(n)||0)/maxScore,score=Math.round((freq*.45+idx*.55)*100);
+    const hue=Math.round(220-score*2.0);return `<div class="heat-number" style="background:hsl(${hue} 78% 52%)"><b>${String(n).padStart(2,"0")}</b><small>${score}点</small></div>`;
+  }).join("");
+}
+function renderSetDiagnosisLab(){
+  const box=$("#labSetDiagnosis");if(!box)return;const sets=user[game].sets||[];
+  if(!sets.length){box.innerHTML='<p class="muted">予想画面でセットを生成すると診断します。</p>';return}
+  box.innerHTML=sets.map((set,i)=>{const structure=structureScore(set),learned=learnedFeatureScore(set),total=Math.round(structure*.55+learned*.45),m=setMetrics(set);return `<div class="set"><div class="settop"><b>第${i+1}口</b><span class="ai-grade">${gradeFromScore(total)}</span></div>${balls(set)}<div class="diagnosis-grid"><article><b>${total}</b><span>総合指数</span></article><article><b>${structure}</b><span>構造</span></article><article><b>${learned}</b><span>学習整合</span></article><article><b>${m.ac}</b><span>AC値</span></article></div><p class="lab-comment">${diagnosisComment(set,total)}</p></div>`}).join("");
+}
+function applyReviewLearningInternal(adjustment,reason){
+  if(!adjustment)return;const count=(user[game].reviews||[]).length,damping=count<5?.65:count<15?.45:.30,before={...user[game].featureWeights};
+  Object.entries(adjustment).forEach(([k,delta])=>{user[game].featureWeights[k]=clamp((user[game].featureWeights[k]||1)+delta*damping,.5,1.5)});
+  const changes=Object.keys(featureNames).map(k=>({key:k,delta:(user[game].featureWeights[k]||1)-(before[k]||1)})).filter(x=>Math.abs(x.delta)>.0001);
+  user[game].learningLog??=[];user[game].learningLog.unshift({date:new Date().toISOString(),reason,changes});user[game].learningLog=user[game].learningLog.slice(0,50);
+}
+function toggleAutoLearning(){user[game].autoLearning=!user[game].autoLearning;save();renderVer26Lab()}
+function resetFeatureLearning(){
+  if(!confirm(`${C().name}の学習重みを初期値へ戻しますか？`))return;createSafetyBackup("学習重み初期化");
+  user[game].featureWeights={repeat:1,slide:1,bonusAdj:1,oddEven:1,sum:1,ac:1,range:1,consecutive:1};user[game].learningLog=[];save();renderVer26Lab();renderSets();
+}
+function renderLearningState(){
+  const box=$("#learningState"),log=$("#learningLog");if(!box||!log)return;const weights=user[game].featureWeights||{};
+  box.innerHTML=`<p><b>自動学習：</b><span class="${user[game].autoLearning?'ok':'warn'}">${user[game].autoLearning?'ON':'OFF'}</span></p><div>${Object.keys(featureNames).map(k=>`<span class="learning-chip">${featureNames[k]} ${(weights[k]||1).toFixed(2)}</span>`).join("")}</div>`;
+  $("#toggleAutoLearningBtn").textContent=user[game].autoLearning?"自動学習をOFF":"自動学習をON";
+  log.innerHTML=(user[game].learningLog||[]).slice(0,8).map(x=>`<div class="learning-entry"><b>${new Date(x.date).toLocaleString('ja-JP')}</b>｜${x.reason}<br>${x.changes.map(c=>`${featureNames[c.key]} ${c.delta>0?'+':''}${c.delta.toFixed(3)}`).join('・')||'変更なし'}</div>`).join('')||'<p class="muted">学習履歴はまだありません。</p>';
+}
+function renderLogicComparison(){
+  const body=$("#logicComparison");if(!body)return;const windows=[30,100,300,'all'];
+  body.innerHTML=Object.keys(featureNames).map(k=>{const vals=windows.map(w=>featureOccurrence(w==='all'?R():R().slice(-w),k));const spread=Math.max(...vals)-Math.min(...vals),recent=vals[0]-vals[3];let label,cls;if(spread<=.10){label='長期安定';cls='logic-stable'}else if(recent>=.12){label='直近上昇';cls='logic-recent'}else{label='変動大';cls='logic-weak'}return `<tr><td>${featureNames[k]}</td>${vals.map(v=>`<td>${(v*100).toFixed(1)}%</td>`).join('')}<td class="${cls}">${label}</td></tr>`}).join('');
+}
+function renderFilterContribution(){
+  const box=$("#filterContribution");if(!box)return;const reviews=(user[game].reviews||[]).slice(0,30),weights=user[game].featureWeights||{};
+  box.innerHTML=Object.keys(featureNames).map(k=>{const vals=reviews.map(r=>r.features?.[k]?.score).filter(v=>Number.isFinite(v));const observed=vals.length?mean(vals):.5,weight=weights[k]||1,score=Math.round(clamp(observed*weight/1.5,0,1)*100);return `<div class="filter-row"><b>${featureNames[k]}</b><div class="bar"><i style="width:${score}%"></i></div><em>${score}</em></div>`}).join('')+'<p class="muted">貢献度は直近検証の特徴スコアと現在重みを合成した研究指標です。</p>';
+}
+function renderVer26Lab(){if(!$("#lab"))return;renderNumberHeatmap();renderSetDiagnosisLab();renderLearningState();renderLogicComparison();renderFilterContribution()}
 
 boot();

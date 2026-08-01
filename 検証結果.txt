@@ -1,1 +1,7 @@
-JavaScript参照IDの不足: purchaseBackupBtn, purchaseCancelBtn, purchaseEditDrawNo, purchaseEditId, purchaseEditNote, purchaseEditSets, purchaseEditor, purchaseEditorTitle, purchaseExportBtn, purchaseHistoryList, purchaseManager, purchaseRestoreBtn, purchaseSaveBtn, purchaseSearch, purchaseShowAllBtn, purchaseStatusFilter, purchaseSummary, refreshLatestBtn, remoteUpdatePanel
+Ver.26.0 検証結果
+・JavaScript構文チェック：実施
+・必須DOM ID：実装確認
+・Ver.24～26機能：ロト6・ロト7共通
+・既存購入履歴データ構造：維持
+・第688回手動結果・検証履歴：維持
+・Service Workerキャッシュ名：v26へ更新

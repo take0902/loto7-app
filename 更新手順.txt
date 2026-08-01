@@ -1,19 +1,33 @@
-AI Lottery Lab Ver.23.0 フルセット更新
+AI Lottery Lab Ver.26.0 フルセット更新
+
+【更新方法】
+1. このZIPをiPhoneの「ファイル」で展開します。
+2. GitHubの take0902/loto7-app を開きます。
+3. Add file → Upload files を選びます。
+4. 展開したフォルダ内の全ファイルを選択してアップロードします。
+5. Commit changes を押します。
+6. Vercel反映後、Safariを完全に閉じて開き直します。
 
 【重要】
-このZIPには画面・CSS・JavaScript・PWA・Vercel設定など、更新に必要なプログラムファイルをすべて収録しています。
-既存の loto6.json と loto7.json は全履歴データのため、GitHub上にあるものをそのまま保持してください。ZIPには誤って履歴を消さないため含めていません。
+・コードを開く必要はありません。
+・GitHubにある loto6.json と loto7.json は削除しないでください。ZIPには収録していません。
+・端末内の購入履歴・第688回検証結果はlocalStorageに残るため維持されます。
 
-更新方法
-1. ZIPを展開
-2. GitHubの loto7-app → Add file → Upload files
-3. 展開したファイルをすべて選択
-4. Commit changes
-5. Vercel反映後、Safariを完全に閉じて再度開く
-6. 表示が古い場合はSafariの再読み込みを長押しして更新
+【Ver.24】
+・数字ヒートマップ
+・買い目AI診断（S～D）
+・構造、学習整合、AC値、改善コメント
 
-収録ファイル
-index.html / app.css / style.css / app.js / latest.json / manifest.webmanifest / manifest.json / icon.svg / service-worker.js / vercel.json
+【Ver.25】
+・自動学習ON/OFF
+・検証後の重み自動更新
+・学習履歴
+・学習重み初期化（安全バックアップ付き）
 
-履歴データ
-loto6.json・loto7.jsonはGitHub上の既存ファイルを維持。最新結果の控えは *_latest_backup.json に収録。
+【Ver.26】
+・ロジック研究所
+・30/100/300回/全期間の特徴比較
+・長期安定、直近上昇、変動大の判定
+・フィルター貢献度表示
+
+注意：各評価は過去データを使った研究指数であり、理論上の当選確率や当選を保証するものではありません。
