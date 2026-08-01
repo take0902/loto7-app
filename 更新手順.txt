@@ -1,19 +1,11 @@
-AI Lottery Lab Ver.21.1.2 API 404修正版
+AI Lottery Lab Ver.22.0 安定版
 
-今回の原因:
-api/latest.js がGitHubの api フォルダに入らず、VercelにAPIが作成されていませんでした。
-画面の 404 はアプリ処理ではなく、API URL自体が存在しない意味です。
+更新するファイル
+・app.js
+・latest.json
 
-更新方法:
-1. ZIPを展開します。
-2. GitHubの loto7-app で Add file → Upload files を開きます。
-3. 次の2ファイルを選択してアップロードします。
-   ・api-latest.js
-   ・vercel.json
-4. Commit changes を押します。
-5. Vercel反映後、Safariでアプリを再読み込みします。
-6. 「ロト6・ロト7の最新データを確認」を押します。
+GitHubの Add file → Upload files から2ファイルを選び、Commit changesを押してください。
+コード編集は不要です。
 
-重要:
-フォルダはありません。2ファイルともリポジトリ直下へアップロードしてください。
-app.jsのコード編集は不要です。
+この版は、存在しない /api/latest を使わないため404になりません。
+重要：latest.jsonは静的ファイルです。今回の最新結果は収録済みですが、将来の抽選結果を自動で書き換える機能ではありません。完全自動更新にはGitHub Actions等の定期処理が別途必要です。
