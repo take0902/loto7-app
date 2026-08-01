@@ -1,3 +1,4 @@
+// AI Lottery Lab Ver.20.1 修正版 2026-08-01
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -10,6 +11,55 @@ let backtestResults={};
 let optimizerResult=null;
 const C=()=>config[game], R=()=>draws[game];
 
+// 公式発表済みで、内蔵JSONへの反映待ちの抽選結果。
+// JSON側に同じ回号が追加された場合は自動的に重複を除外します。
+const supplementalDraws={
+  loto6:[],
+  loto7:[{no:688,date:"2026-07-31",nums:[4,21,25,28,30,35,37],bonus:[12,16]}]
+};
+
+function mergeDraws(base,extra=[]){
+  const byNo=new Map();
+  [...base,...extra].forEach(d=>{
+    if(d&&Number.isFinite(Number(d.no)))byNo.set(Number(d.no),{
+      ...d,no:Number(d.no),nums:[...(d.nums||[])].map(Number).sort((a,b)=>a-b),
+      bonus:[...(d.bonus||[])].map(Number).sort((a,b)=>a-b)
+    });
+  });
+  return [...byNo.values()].sort((a,b)=>a.no-b.no);
+}
+
+function registeredDraws(g){
+  const a=user[g]?.manualDraws;
+  return Array.isArray(a)?a:[];
+}
+
+function upsertManualDraw(g,draw){
+  user[g].manualDraws??=[];
+  const i=user[g].manualDraws.findIndex(x=>Number(x.no)===Number(draw.no));
+  if(i>=0)user[g].manualDraws[i]=draw; else user[g].manualDraws.push(draw);
+  user[g].manualDraws.sort((a,b)=>a.no-b.no);
+  draws[g]=mergeDraws(draws[g],user[g].manualDraws);
+}
+
+function prizeRank(g,main,bonus){
+  if(g==="loto7"){
+    if(main===7)return "1等";
+    if(main===6&&bonus>=1)return "2等";
+    if(main===6)return "3等";
+    if(main===5)return "4等";
+    if(main===4)return "5等";
+    if(main===3&&bonus>=1)return "6等";
+    return "はずれ";
+  }
+  if(main===6)return "1等";
+  if(main===5&&bonus>=1)return "2等";
+  if(main===5)return "3等";
+  if(main===4)return "4等";
+  if(main===3)return "5等";
+  return "はずれ";
+}
+
 function loadUser(){
   try{
     const raw=localStorage.getItem("loto67v12")||localStorage.getItem("loto67v11")||localStorage.getItem("loto67v6");
@@ -21,6 +71,7 @@ function loadUser(){
       parsed[g].checks??=[];
       parsed[g].customWeights??=null;
       parsed[g].reviews??=[];
+      parsed[g].manualDraws??=[];
       parsed[g].featureWeights??={repeat:1,slide:1,bonusAdj:1,oddEven:1,sum:1,ac:1,range:1,consecutive:1};
     }
     return parsed;
@@ -36,8 +87,8 @@ async function loadJson(path){
 }
 async function boot(){
   try{
-    draws.loto6=await loadJson(config.loto6.file);
-    draws.loto7=await loadJson(config.loto7.file);
+    draws.loto6=mergeDraws(await loadJson(config.loto6.file),[...supplementalDraws.loto6,...registeredDraws("loto6")]);
+    draws.loto7=mergeDraws(await loadJson(config.loto7.file),[...supplementalDraws.loto7,...registeredDraws("loto7")]);
     bind(); render();
     if("serviceWorker" in navigator)navigator.serviceWorker.register("service-worker.js").catch(()=>{});
   }catch(e){
@@ -856,6 +907,15 @@ function runAutoReview(){
 
   if(winning.length!==C().pick)return alert(`本数字を${C().pick}個入力してください`);
   if(bonus.length!==C().bonus)return alert(`ボーナス数字を${C().bonus}個入力してください`);
+  if(!Number.isInteger(no)||no<=0)return alert("正しい抽選回号を入力してください");
+  if(new Set(winning).size!==C().pick||winning.some(n=>n<1||n>C().max))return alert("本数字に重複または範囲外の数字があります");
+  if(new Set(bonus).size!==C().bonus||bonus.some(n=>n<1||n>C().max)||bonus.some(n=>winning.includes(n)))return alert("ボーナス数字に重複・範囲外・本数字との重複があります");
+
+  // JSON未収録の新しい回号は端末内に正式登録し、次回から最新結果として利用します。
+  if(!R().some(x=>x.no===no)){
+    upsertManualDraw(game,{no,date:new Date().toISOString().slice(0,10),nums:winning,bonus});
+    save();
+  }
 
 const idx=R().findIndex(x=>x.no===no);
 
@@ -897,11 +957,10 @@ if(idx>=1){
     consecutive:fstate(normalScore(metrics.consecutive,consecutiveHistory),`連番 ${metrics.consecutive}組`)
   };
 
-  const matches=saved.sets.map(set=>({
-    set,
-    main:overlap(set,winning),
-    bonus:overlap(set,bonus)
-  }));
+  const matches=saved.sets.map(set=>{
+    const main=overlap(set,winning),bonusHit=overlap(set,bonus);
+    return {set,main,bonus:bonusHit,rank:prizeRank(game,main,bonusHit)};
+  });
   const highest=Math.max(...matches.map(x=>x.main),0);
   const average=mean(matches.map(x=>x.main));
 
@@ -928,7 +987,7 @@ if(oldIndex>=0){
   save();
 
   $("#reviewMatches").innerHTML=matches.map((x,i)=>
-    `<div class="set"><div class="settop"><b>第${i+1}口</b><span class="badge">本数字 ${x.main}個</span></div>${balls(x.set)}<div class="mini-metrics">ボーナス ${x.bonus}個</div></div>`
+    `<div class="set"><div class="settop"><b>第${i+1}口</b><span class="badge">${x.rank}</span></div>${balls(x.set)}<div class="mini-metrics">本数字 ${x.main}個・ボーナス ${x.bonus}個</div></div>`
   ).join("");
 
   $("#featureEvaluation").innerHTML=Object.entries(features).map(([k,v])=>
@@ -947,7 +1006,10 @@ if(oldIndex>=0){
     `</div>`;
 
   $("#applyReviewBtn").disabled=false;
-  $("#reviewStatus").textContent=`第${no}回のレポートを作成しました`;
+  const winners=matches.filter(x=>x.rank!=="はずれ");
+  $("#reviewStatus").textContent=winners.length
+    ? `第${no}回：${winners.length}口当せん（${winners.map(x=>x.rank).join("・")}）`
+    : `第${no}回のレポートを作成しました（当せんなし）`;
   renderReviewPanel();
 }
 
