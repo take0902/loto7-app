@@ -825,13 +825,24 @@ function runLatestAutoReview(){
   const latest=R().at(-1),saved=user[game].savedSets||[];
   if(!latest)return alert("抽選データがありません");
   if(!saved.length)return alert("購入した5セットを先に保存してください");
+
   $("#reviewSavedSet").value="0";
-  $("#reviewDrawNo").value=latest.no;
-  $("#reviewWinning").value=latest.nums.join(",");
-  $("#reviewBonus").value=latest.bonus.join(",");
-  if((user[game].reviews||[]).some(r=>r.no===latest.no&&r.savedDate===saved[0].date)){
-    return alert(`第${latest.no}回は、この保存セットで検証済みです`);
+
+  const inputNo=Number($("#reviewDrawNo").value);
+  const inputWinning=parseNums($("#reviewWinning").value);
+  const inputBonus=parseNums($("#reviewBonus").value);
+
+  const manualInputOk=
+    inputNo>latest.no &&
+    inputWinning.length===C().pick &&
+    inputBonus.length===C().bonus;
+
+  if(!manualInputOk){
+    $("#reviewDrawNo").value=latest.no;
+    $("#reviewWinning").value=latest.nums.join(",");
+    $("#reviewBonus").value=latest.bonus.join(",");
   }
+
   runAutoReview();
 }
 
@@ -846,11 +857,20 @@ function runAutoReview(){
   if(winning.length!==C().pick)return alert(`本数字を${C().pick}個入力してください`);
   if(bonus.length!==C().bonus)return alert(`ボーナス数字を${C().bonus}個入力してください`);
 
-  const idx=R().findIndex(x=>x.no===no);
-  if(idx<1)return alert("回号が内蔵データに見つかりません");
+const idx=R().findIndex(x=>x.no===no);
 
-  const prev=R()[idx-1];
-  const hist=R().slice(0,idx);
+let prev;
+let hist;
+
+if(idx>=1){
+  prev=R()[idx-1];
+  hist=R().slice(0,idx);
+}else if(idx===-1 && no>R().at(-1).no){
+  prev=R().at(-1);
+  hist=R();
+}else{
+  return alert("前回データを確認できない回号です");
+}
   const metrics=setMetrics(winning);
   const repeat=winning.filter(n=>prev.nums.includes(n)).length;
   const slide=winning.filter(n=>prev.nums.some(p=>Math.abs(p-n)===1)).length;
@@ -890,9 +910,21 @@ function runAutoReview(){
     pendingReviewAdjustment[k]=v.status==="good"?.06:v.status==="bad"?-.04:0;
   });
 
-  user[game].reviews.unshift({
-    no,winning,bonus,matches,highest,average,features,savedDate:saved.date,date:new Date().toISOString()
-  });
+  const reviewData={
+  no,winning,bonus,matches,highest,average,features,
+  savedDate:saved.date,
+  date:new Date().toISOString()
+};
+
+const oldIndex=user[game].reviews.findIndex(
+  r=>r.no===no && r.savedDate===saved.date
+);
+
+if(oldIndex>=0){
+  user[game].reviews[oldIndex]=reviewData;
+}else{
+  user[game].reviews.unshift(reviewData);
+}
   save();
 
   $("#reviewMatches").innerHTML=matches.map((x,i)=>
