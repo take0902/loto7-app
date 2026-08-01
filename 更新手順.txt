@@ -1,23 +1,20 @@
-AI Lottery Lab Ver.21.1 最新抽選結果自動更新版
+AI Lottery Lab Ver.21.1.1 自動更新修正版
 
-【更新するファイル】
+【修正内容】
+・Vercel APIをCommonJS形式へ変更し、FUNCTION_INVOCATION_FAILEDを修正
+・取得先を追加
+・[object Object]ではなく具体的なエラー内容を表示
+
+【更新ファイル】
 1. app.js
-2. api フォルダ内の latest.js
+2. api/latest.js
 
-【iPhoneでの更新方法】
-1. このZIPを「ファイル」アプリでタップして展開します。
-2. GitHubの take0902/loto7-app を開きます。
-3. Add file → Upload files を押します。
-4. 展開したフォルダ内の app.js と api フォルダを選択してアップロードします。
-5. Commit changes を押します。
-6. Vercel反映後、Safariでアプリを再読み込みします。
+【手順】
+1. ZIPを展開
+2. GitHubの Add file → Upload files
+3. app.js と api フォルダをアップロード
+4. Commit changes
+5. Vercel反映後、Safariで再読み込み
+6. 「ロト6・ロト7の最新データを確認」を押す
 
-【確認方法】
-・ホーム画面に「最新データ自動更新」が表示されます。
-・起動時にロト6・ロト7の最新結果を自動確認します。
-・「ロト6・ロト7の最新データを確認」ボタンでも再確認できます。
-・取得失敗時も、既存JSONと端末保存データでアプリはそのまま起動します。
-
-【注意】
-・既存の購入履歴、第688回の6等結果、学習データは削除しません。
-・api/latest.js はVercelのサーバー側で外部ページを確認するためのファイルです。
+コード編集は不要です。

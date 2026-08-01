@@ -1,4 +1,4 @@
-// AI Lottery Lab Ver.21.1 最新抽選結果・自動更新強化版 2026-08-01
+// AI Lottery Lab Ver.21.1.1 最新抽選結果・自動更新修正版 2026-08-01
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -108,7 +108,7 @@ function injectVer21Styles(){
   style.textContent=`.purchase-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.purchase-tools input,.purchase-tools select{width:100%;box-sizing:border-box}.purchase-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.purchase-summary article{padding:14px;border-radius:14px;background:#f4f6fb;text-align:center}.purchase-summary b{display:block;font-size:1.35rem}.purchase-summary span{font-size:.82rem;color:#6b7280}.purchase-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.purchase-note{white-space:pre-wrap;padding:10px;border-radius:10px;background:#f6f7fb;margin:8px 0}.purchase-status{font-weight:800}.purchase-status.win{color:#c026d3}.purchase-status.pending{color:#b45309}.purchase-status.lose{color:#64748b}.ball.hit-main{background:linear-gradient(135deg,#10b981,#22c55e)!important;box-shadow:0 0 0 4px rgba(16,185,129,.18)}.ball.hit-bonus{background:linear-gradient(135deg,#f59e0b,#facc15)!important;color:#422006!important;box-shadow:0 0 0 4px rgba(245,158,11,.18)}.match-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:.85rem}.match-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.match-legend .m{background:#10b981}.match-legend .b{background:#f59e0b}.duplicate-warning{padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;margin:8px 0}@media(min-width:700px){.purchase-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.purchase-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}`;
   document.head.appendChild(style)
 }
-function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0/g,"Ver.21.1")})}
+function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0/g,"Ver.21.1.1")})}
 
 function makePurchaseId(){
   return `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -174,8 +174,14 @@ async function fetchRemoteLatest(g,{silent=false}={}){
   if(!silent)renderRemoteUpdatePanel();
   try{
     const r=await fetch(`/api/latest?game=${encodeURIComponent(g)}&_=${Date.now()}`,{cache:"no-store",headers:{Accept:"application/json"}});
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
+    const raw=await r.text();
+    let data={};
+    try{data=raw?JSON.parse(raw):{}}catch{data={error:`API応答を解析できません（HTTP ${r.status}）`,details:[raw.slice(0,180)]}}
+    if(!r.ok){
+      const detail=Array.isArray(data.details)?data.details.join(" / "):data.details?JSON.stringify(data.details):"";
+      const message=typeof data.error==="string"?data.error:data.error?JSON.stringify(data.error):`HTTP ${r.status}`;
+      throw new Error(detail?`${message}：${detail}`:message);
+    }
     if(!validRemoteDraw(g,data.draw))throw new Error("取得データの形式を確認できませんでした");
     const draw={...data.draw,no:Number(data.draw.no),nums:data.draw.nums.map(Number).sort((a,b)=>a-b),bonus:data.draw.bonus.map(Number).sort((a,b)=>a-b)};
     const before=draws[g]?.at(-1)?.no||0;
