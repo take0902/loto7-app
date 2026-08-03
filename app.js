@@ -110,7 +110,7 @@ function injectVer21Styles(){
   style.textContent=`.purchase-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.purchase-tools input,.purchase-tools select{width:100%;box-sizing:border-box}.purchase-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.purchase-summary article{padding:14px;border-radius:14px;background:#f4f6fb;text-align:center}.purchase-summary b{display:block;font-size:1.35rem}.purchase-summary span{font-size:.82rem;color:#6b7280}.purchase-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.purchase-note{white-space:pre-wrap;padding:10px;border-radius:10px;background:#f6f7fb;margin:8px 0}.purchase-status{font-weight:800}.purchase-status.win{color:#c026d3}.purchase-status.pending{color:#b45309}.purchase-status.lose{color:#64748b}.ball.hit-main{background:linear-gradient(135deg,#10b981,#22c55e)!important;box-shadow:0 0 0 4px rgba(16,185,129,.18)}.ball.hit-bonus{background:linear-gradient(135deg,#f59e0b,#facc15)!important;color:#422006!important;box-shadow:0 0 0 4px rgba(245,158,11,.18)}.match-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:.85rem}.match-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.match-legend .m{background:#10b981}.match-legend .b{background:#f59e0b}.duplicate-warning{padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;margin:8px 0}@media(min-width:700px){.purchase-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.purchase-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}`;
   document.head.appendChild(style)
 }
-function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0|Ver\.21\.1|Ver\.21\.1\.1/g,"Ver.22.0")})}
+function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0|Ver\.21\.1|Ver\.21\.1\.1/g,"Ver.28.0")})}
 
 function makePurchaseId(){
   return `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -247,6 +247,7 @@ function bind(){
     if(b.dataset.tab==="report")renderReport();
     if(b.dataset.tab==="lab")renderVer26Lab();
     if(b.dataset.tab==="simulator")renderSimulatorDefaults();
+    if(b.dataset.tab==="purchase")renderPurchaseMode();
   });
   $("#analysisWindow").onchange=renderAnalysis;
   $("#reportWindow").onchange=renderReport;
@@ -273,6 +274,10 @@ function bind(){
   if($("#resetLearningBtn"))$("#resetLearningBtn").onclick=resetFeatureLearning;
   if($("#runSimulatorBtn"))$("#runSimulatorBtn").onclick=runConditionSimulator;
   if($("#resetSimulatorBtn"))$("#resetSimulatorBtn").onclick=resetConditionSimulator;
+  if($("#exportExcelBtn"))$("#exportExcelBtn").onclick=exportPurchaseExcel;
+  if($("#exportCsvBtn"))$("#exportCsvBtn").onclick=exportPurchaseCsv;
+  if($("#copyPurchaseBtn"))$("#copyPurchaseBtn").onclick=copyPurchaseMode;
+  if($("#printPurchaseBtn"))$("#printPurchaseBtn").onclick=()=>window.print();
   let prompt;
   window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();prompt=e;$("#installBtn").hidden=false});
   $("#installBtn").onclick=async()=>{if(prompt){prompt.prompt();await prompt.userChoice;prompt=null;$("#installBtn").hidden=true}};
@@ -534,7 +539,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();
+  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();renderPurchaseMode();
 }
 function renderAnalysis(){
   const o=stats($("#analysisWindow").value),rows=o.rows,max=o.rank[0].c,min=Math.min(...o.rank.map(x=>x.c));
@@ -1391,6 +1396,49 @@ function renderSimulatorComparison(matched,records){
 }
 function renderSimulatorHistory(matched){
   $("#simHistory").innerHTML=[...matched].reverse().slice(0,300).map(x=>`<tr><td>${x.draw.no}</td><td>${x.draw.date||'-'}</td><td>${x.draw.nums.join('・')}</td><td>${x.repeat}</td><td>${x.slide}</td><td>${x.m.sum}</td><td>${x.m.ac}</td></tr>`).join('')||'<tr><td colspan="7">該当なし</td></tr>';
+}
+
+
+// ===== Ver.28 購入モード・Excel/CSV出力 =====
+function purchaseModeKey(){return `loto67_purchase_checks_${game}`}
+function purchaseModeChecks(){try{return JSON.parse(localStorage.getItem(purchaseModeKey())||"{}")||{}}catch{return {}}}
+function currentPurchaseSets(){return Array.isArray(user[game]?.sets)?user[game].sets:[]}
+function currentPurchaseDrawNo(){return nextDrawNo(game)}
+function purchaseUnitPrice(){return 300}
+function purchaseAiScore(set){return adaptiveStructureScore(set)}
+function purchaseRank(score){return score>=88?"S":score>=78?"A":score>=68?"B":score>=58?"C":"D"}
+function renderPurchaseMode(){
+  const box=$("#purchaseModeSets");if(!box)return;
+  const sets=currentPurchaseSets(),drawNo=currentPurchaseDrawNo(),checks=purchaseModeChecks();
+  $("#purchaseModeTitle").textContent=`${C().name} 第${drawNo}回 購入数字`;
+  $("#purchaseModeAmount").textContent=`${(sets.length*purchaseUnitPrice()).toLocaleString("ja-JP")}円`;
+  if(!sets.length){box.innerHTML='<div class="purchase-empty">予想画面で数字を生成してください。</div>';return}
+  box.innerHTML=sets.map((set,i)=>{const checked=!!checks[i],score=purchaseAiScore(set);return `<div class="purchase-mode-set ${checked?"done":""}"><label><b>第${i+1}口｜AI ${purchaseRank(score)}ランク ${score}点</b><span><input type="checkbox" data-purchase-check="${i}" ${checked?"checked":""}> 購入済み</span></label><div class="purchase-mode-number">${set.map(n=>`<span>${String(n).padStart(2,"0")}</span>`).join("")}</div></div>`}).join("");
+  $$('[data-purchase-check]').forEach(c=>c.onchange=()=>{const state=purchaseModeChecks();state[c.dataset.purchaseCheck]=c.checked;localStorage.setItem(purchaseModeKey(),JSON.stringify(state));renderPurchaseMode()});
+}
+function purchaseExportRows(){
+  const sets=currentPurchaseSets(),drawNo=currentPurchaseDrawNo();
+  return sets.map((set,i)=>{const score=purchaseAiScore(set),row={"ゲーム":C().name,"対象回":drawNo,"口番号":i+1};set.forEach((n,j)=>row[`数字${j+1}`]=String(n).padStart(2,"0"));row["AIランク"]=purchaseRank(score);row["AI評価点"]=score;row["作成日時"]=new Date().toLocaleString("ja-JP");return row});
+}
+function safeFileName(ext){return `${game}_第${currentPurchaseDrawNo()}回_購入数字_${new Date().toISOString().slice(0,10)}.${ext}`}
+function downloadBlob(content,type,name){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+function exportPurchaseCsv(){
+  const rows=purchaseExportRows();if(!rows.length)return alert("出力する予想セットがありません");
+  const headers=Object.keys(rows[0]),escape=v=>`"${String(v??"").replace(/"/g,'""')}"`,csv="\uFEFF"+[headers.map(escape).join(","),...rows.map(r=>headers.map(h=>escape(r[h])).join(","))].join("\r\n");
+  downloadBlob(csv,"text/csv;charset=utf-8",safeFileName("csv"));$("#purchaseExportStatus").textContent="CSVを出力しました";
+}
+function exportPurchaseExcel(){
+  const rows=purchaseExportRows();if(!rows.length)return alert("出力する予想セットがありません");
+  const headers=Object.keys(rows[0]);
+  const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const table=`<table><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${headers.map(h=>`<td style="mso-number-format:'\\@'">${esc(r[h])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  const html=`<!doctype html><html><head><meta charset="UTF-8"><style>table{border-collapse:collapse;font-family:'Yu Gothic','Meiryo',sans-serif}th{background:#6657ff;color:white}th,td{border:1px solid #999;padding:8px;text-align:center}</style></head><body><h2>${C().name} 第${currentPurchaseDrawNo()}回 購入数字</h2>${table}</body></html>`;
+  downloadBlob("\uFEFF"+html,"application/vnd.ms-excel;charset=utf-8",safeFileName("xls"));$("#purchaseExportStatus").textContent="Excel形式（.xls）を出力しました";
+}
+async function copyPurchaseMode(){
+  const sets=currentPurchaseSets();if(!sets.length)return alert("コピーする予想セットがありません");
+  const text=`${C().name} 第${currentPurchaseDrawNo()}回\n`+sets.map((s,i)=>`${i+1}. ${s.map(n=>String(n).padStart(2,"0")).join(" ")}`).join("\n");
+  try{await navigator.clipboard.writeText(text);$("#purchaseExportStatus").textContent="購入数字をコピーしました"}catch{alert("コピーできませんでした")}
 }
 
 boot();

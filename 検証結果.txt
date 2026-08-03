@@ -1,6 +1,10 @@
-Ver.27.0 検証結果
-・index.html タブ/ID整合確認
-・app.js JavaScript構文確認
-・CSS読込ファイル app.css を同梱
-・service-worker キャッシュ更新
-・ロト6/ロト7共通ロジック
+AI Lottery Lab Ver.28.0 検証結果
+
+・app.js JavaScript構文確認：正常
+・購入モード画面ID：正常
+・Excel形式（.xls）出力：実装済み
+・CSV出力：実装済み
+・コピー／印刷・PDF：実装済み
+・ロト6／ロト7共通切替：対応
+・購入済みチェックの端末保存：対応
+・Service Workerキャッシュ：v28へ更新
