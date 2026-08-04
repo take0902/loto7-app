@@ -1,6 +1,6 @@
 {
-  "name": "AI Lottery Lab Ver.31.0.1",
-  "short_name": "Lottery Lab 30.1",
+  "name": "AI Lottery Lab",
+  "short_name": "Lottery Lab",
   "start_url": "/?v=3011",
   "scope": "/",
   "display": "standalone",
@@ -13,5 +13,6 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "description": "ロト6・ロト7 AI分析ツール"
 }

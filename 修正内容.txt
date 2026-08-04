@@ -1,7 +1,8 @@
-AI Lottery Lab Ver.31.0.1 修正内容
+AI Lottery Lab Ver.31.1.0 全体再点検版
 
-・AIスコアボード起動時の「Can't find variable: gapOf」を修正
-・数字ごとの未出現回数を算出する gapOf() 関数を追加
-・空データや不正な nums 配列でも停止しない安全処理を追加
-・CSS / JavaScript / JSON のキャッシュキーを Ver.31.0.1 に更新
-・Service Worker の旧キャッシュ削除番号を更新
+・バージョン情報を app-config.js に一元化
+・ヘッダー、ENGINE、スコアボード、購入モード、フッターを自動同期
+・manifest の古い short_name を修正
+・Service Worker が app-config.js のキャッシュキーを参照
+・gapOf 定義、JavaScript構文、JSON、HTML重複ID、必須ファイルを再確認
+・起動試験と主要タブ表示試験を実施

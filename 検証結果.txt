@@ -1,7 +1,12 @@
-Ver.31.0.1 検証項目
-- JavaScript構文確認
-- JSON形式確認
-- HTML内ID重複確認
-- 必須ファイル存在確認
-- ZIP展開確認
-- バージョン表記統一確認
+AI Lottery Lab Ver.31.1.0 検証結果
+
+[OK] JavaScript構文（app.js / app-config.js）
+[OK] JSON構文（全JSON）
+[OK] HTML重複IDなし
+[OK] 必須ファイル存在
+[OK] gapOf関数定義あり
+[OK] Ver.31.0.1 / V30 / Lottery Lab 30.1 の残存なし
+[OK] ヘッダー・ENGINE・AIスコア・購入モード・フッターの一元同期
+[OK] manifest表記修正
+[OK] Service Workerキャッシュキー連動
+[OK] ZIP整合性
