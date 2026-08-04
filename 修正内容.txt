@@ -1,6 +1,7 @@
-Ver.30.1.1 Safari安定版
-- 巨大な単一HTML構成を廃止し、安定していた外部CSS/JS分離構成へ復帰
-- loto6.json / loto7.jsonを同梱
-- JSON取得失敗時のバックアップ・内蔵データ起動を追加
-- 旧Service Workerとキャッシュを解除
-- バージョン表記とキャッシュ識別子を30.1.1へ統一
+AI Lottery Lab Ver.31.0.1 修正内容
+
+・AIスコアボード起動時の「Can't find variable: gapOf」を修正
+・数字ごとの未出現回数を算出する gapOf() 関数を追加
+・空データや不正な nums 配列でも停止しない安全処理を追加
+・CSS / JavaScript / JSON のキャッシュキーを Ver.31.0.1 に更新
+・Service Worker の旧キャッシュ削除番号を更新

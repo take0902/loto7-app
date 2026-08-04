@@ -1,4 +1,4 @@
-AI Lottery Lab Ver.31.0.0 更新手順
+AI Lottery Lab Ver.31.0.1 更新手順
 
 1. ZIPを展開します。
 2. 中の全ファイルをGitHubリポジトリ最上位へ上書きします。

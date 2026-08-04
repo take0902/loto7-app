@@ -110,7 +110,7 @@ function injectVer21Styles(){
   style.textContent=`.purchase-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.purchase-tools input,.purchase-tools select{width:100%;box-sizing:border-box}.purchase-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.purchase-summary article{padding:14px;border-radius:14px;background:#f4f6fb;text-align:center}.purchase-summary b{display:block;font-size:1.35rem}.purchase-summary span{font-size:.82rem;color:#6b7280}.purchase-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.purchase-note{white-space:pre-wrap;padding:10px;border-radius:10px;background:#f6f7fb;margin:8px 0}.purchase-status{font-weight:800}.purchase-status.win{color:#c026d3}.purchase-status.pending{color:#b45309}.purchase-status.lose{color:#64748b}.ball.hit-main{background:linear-gradient(135deg,#10b981,#22c55e)!important;box-shadow:0 0 0 4px rgba(16,185,129,.18)}.ball.hit-bonus{background:linear-gradient(135deg,#f59e0b,#facc15)!important;color:#422006!important;box-shadow:0 0 0 4px rgba(245,158,11,.18)}.match-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:.85rem}.match-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.match-legend .m{background:#10b981}.match-legend .b{background:#f59e0b}.duplicate-warning{padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;margin:8px 0}@media(min-width:700px){.purchase-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.purchase-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}`;
   document.head.appendChild(style)
 }
-function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0|Ver\.21\.1|Ver\.21\.1\.1|Ver\.28\.0|Ver\.30\.1\.1/g,"Ver.31.0.0")})}
+function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0|Ver\.21\.1|Ver\.21\.1\.1|Ver\.28\.0|Ver\.30\.1\.1/g,"Ver.31.0.1")})}
 
 function makePurchaseId(){
   return `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -157,7 +157,7 @@ function purchaseText(sets){
 async function loadJson(path){
   const gameKey=path.startsWith("loto6")?"loto6":"loto7";
   try{
-    const r=await fetch(`${path}?v=31.0.0`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=31.0.1`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
@@ -165,7 +165,7 @@ async function loadJson(path){
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=31.0.0`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=31.0.1`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
       const d=await r.json();
       if(!validRemoteDraw(gameKey,d))throw new Error(`${backupPath}: データ形式エラー`);
@@ -317,6 +317,10 @@ function seededShuffle(arr){
   const a=[...arr];
   for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
   return a;
+}
+function gapOf(n, rows=R()){
+  const i=[...rows].reverse().findIndex(r=>Array.isArray(r.nums)&&r.nums.includes(n));
+  return i<0?rows.length:i;
 }
 function stats(v){
   const rows=rowsFor(v), count=Array(C().max+1).fill(0);
