@@ -1,4 +1,6 @@
-// AI Lottery Lab Ver.27.0 フルセット版 2026-08-01
+// AI Lottery Lab Ultimate Edition
+const APP_VERSION="30.0.0";
+const APP_NAME=`AI Lottery Lab Ver.${APP_VERSION}`;
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -110,7 +112,13 @@ function injectVer21Styles(){
   style.textContent=`.purchase-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.purchase-tools input,.purchase-tools select{width:100%;box-sizing:border-box}.purchase-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.purchase-summary article{padding:14px;border-radius:14px;background:#f4f6fb;text-align:center}.purchase-summary b{display:block;font-size:1.35rem}.purchase-summary span{font-size:.82rem;color:#6b7280}.purchase-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.purchase-note{white-space:pre-wrap;padding:10px;border-radius:10px;background:#f6f7fb;margin:8px 0}.purchase-status{font-weight:800}.purchase-status.win{color:#c026d3}.purchase-status.pending{color:#b45309}.purchase-status.lose{color:#64748b}.ball.hit-main{background:linear-gradient(135deg,#10b981,#22c55e)!important;box-shadow:0 0 0 4px rgba(16,185,129,.18)}.ball.hit-bonus{background:linear-gradient(135deg,#f59e0b,#facc15)!important;color:#422006!important;box-shadow:0 0 0 4px rgba(245,158,11,.18)}.match-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:.85rem}.match-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.match-legend .m{background:#10b981}.match-legend .b{background:#f59e0b}.duplicate-warning{padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;margin:8px 0}@media(min-width:700px){.purchase-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.purchase-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}`;
   document.head.appendChild(style)
 }
-function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0|Ver\.21\.1|Ver\.21\.1\.1/g,"Ver.28.0")})}
+function updateVersionLabels(){
+  document.title=APP_NAME;
+  document.querySelectorAll("[data-app-version]").forEach(el=>el.textContent=`Ver.${APP_VERSION}`);
+  const hero=document.getElementById("heroVersion");if(hero)hero.textContent=`V${APP_VERSION.split(".")[0]}`;
+  document.documentElement.dataset.appVersion=APP_VERSION;
+}
+
 
 function makePurchaseId(){
   return `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -155,11 +163,21 @@ function purchaseText(sets){
   return (sets||[]).map(a=>a.map(n=>String(n).padStart(2,"0")).join(",")).join("\n");
 }
 async function loadJson(path){
-  const r=await fetch(path,{cache:"no-store"});
-  if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
-  const data=await r.json();
-  if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
-  return data;
+  try{
+    const r=await fetch(path,{cache:"no-store"});
+    if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
+    const data=await r.json();
+    if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
+    return data;
+  }catch(primaryError){
+    const backupPath=path.startsWith("loto6")?"loto6_latest_backup.json":"loto7_latest_backup.json";
+    const r=await fetch(backupPath,{cache:"no-store"});
+    if(!r.ok)throw primaryError;
+    const latest=await r.json();
+    if(!validRemoteDraw(path.startsWith("loto6")?"loto6":"loto7",latest))throw primaryError;
+    console.warn(`${path}が見つからないため最新バックアップで起動しました`,primaryError);
+    return [latest];
+  }
 }
 
 function validRemoteDraw(g,d){
@@ -248,6 +266,7 @@ function bind(){
     if(b.dataset.tab==="lab")renderVer26Lab();
     if(b.dataset.tab==="simulator")renderSimulatorDefaults();
     if(b.dataset.tab==="purchase")renderPurchaseMode();
+    if(b.dataset.tab==="ultimate")renderUltimateDashboard();
   });
   $("#analysisWindow").onchange=renderAnalysis;
   $("#reportWindow").onchange=renderReport;
@@ -539,7 +558,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();renderPurchaseMode();
+  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();renderPurchaseMode();renderUltimateDashboard();
 }
 function renderAnalysis(){
   const o=stats($("#analysisWindow").value),rows=o.rows,max=o.rank[0].c,min=Math.min(...o.rank.map(x=>x.c));
@@ -1398,6 +1417,43 @@ function renderSimulatorHistory(matched){
   $("#simHistory").innerHTML=[...matched].reverse().slice(0,300).map(x=>`<tr><td>${x.draw.no}</td><td>${x.draw.date||'-'}</td><td>${x.draw.nums.join('・')}</td><td>${x.repeat}</td><td>${x.slide}</td><td>${x.m.sum}</td><td>${x.m.ac}</td></tr>`).join('')||'<tr><td colspan="7">該当なし</td></tr>';
 }
 
+
+
+// ===== Ver.30 Ultimate Edition =====
+function allValidationRecords(){
+  const checks=(user[game].checks||[]).map(x=>({no:x.no,highest:Number(x.highest||0),avg:Number(x.avg||0),date:x.date||"",source:"照合"}));
+  const reviews=(user[game].reviews||[]).map(x=>({no:x.no,highest:Math.max(0,...(x.matches||[]).map(m=>Number(m.main||m.hit||0))),avg:mean((x.matches||[]).map(m=>Number(m.main||m.hit||0))),date:x.date||x.reviewedAt||"",source:"自動検証"}));
+  const byNo=new Map();[...checks,...reviews].forEach(x=>{const k=Number(x.no)||`${x.date}-${x.source}`;const prev=byNo.get(k);if(!prev||x.highest>=prev.highest)byNo.set(k,x)});
+  return [...byNo.values()].sort((a,b)=>(Number(a.no)||0)-(Number(b.no)||0));
+}
+function featureImportanceRows(){
+  const labels={repeat:"前回重複",slide:"±1スライド",bonusAdj:"ボーナス隣接",oddEven:"偶奇",sum:"合計値",ac:"AC値",range:"高低幅",consecutive:"連番"};
+  const w=user[game].featureWeights||{};
+  const entries=Object.keys(labels).map(key=>({key,label:labels[key],weight:Number(w[key]||1)}));
+  const max=Math.max(...entries.map(x=>x.weight),1);
+  return entries.map(x=>({...x,index:Math.round(x.weight/max*100)})).sort((a,b)=>b.index-a.index);
+}
+function renderUltimateDashboard(){
+  const kpis=$("#ultimateKpis");if(!kpis)return;
+  const records=allValidationRecords(),saved=user[game].savedSets||[],reviews=user[game].reviews||[];
+  const best=records.length?Math.max(...records.map(x=>x.highest)):0;
+  const avg=records.length?mean(records.map(x=>x.highest)):0;
+  const hit3=records.filter(x=>x.highest>=3).length;
+  const reviewedDraws=new Set(reviews.map(x=>Number(x.no))).size;
+  kpis.innerHTML=`<article><b>${records.length}</b><span>検証回数</span></article><article><b>${avg.toFixed(2)}</b><span>平均最高一致</span></article><article><b>${best}</b><span>最高一致</span></article><article><b>${hit3}</b><span>3個以上</span></article>`;
+  const sample=records.length;
+  const reliability=sample>=30?"評価可能":sample>=10?"参考値":"データ不足";
+  $("#ultimateReliability").textContent=`信頼性判定：${reliability}（購入保存 ${saved.length}件／自動検証済み ${reviewedDraws}回）。最低30回以上の継続検証を推奨します。`;
+  const features=featureImportanceRows();
+  $("#featureImportance").innerHTML=features.map((x,i)=>`<div class="importance-row"><span>${i+1}</span><b>${x.label}</b><div class="bar"><i style="width:${x.index}%"></i></div><em>${x.index}</em><small>重み ${x.weight.toFixed(2)}</small></div>`).join("");
+  const recent=records.slice(-12).reverse();
+  $("#ultimateTrend").innerHTML=recent.length?recent.map(x=>`<div class="trend-row"><span>第${x.no||"-"}回</span><div class="bar"><i style="width:${x.highest/C().pick*100}%"></i></div><b>${x.highest}</b><small>${x.source}</small></div>`).join(""):"<p class='muted'>抽選後検証を行うと推移が表示されます。</p>";
+  const r=R(),nos=r.map(x=>Number(x.no)),duplicateNos=nos.length-new Set(nos).size;
+  const invalid=r.filter(d=>!validRemoteDraw(game,d)).length;
+  const sequence=r.every((x,i)=>i===0||Number(x.no)>Number(r[i-1].no));
+  const latest=r.at(-1);
+  $("#ultimateHealth").innerHTML=`<div class="health-grid"><article><b class="${sequence?"ok":"warn"}">${sequence?"正常":"要確認"}</b><span>回号順序</span></article><article><b class="${duplicateNos?"warn":"ok"}">${duplicateNos}</b><span>重複回号</span></article><article><b class="${invalid?"warn":"ok"}">${invalid}</b><span>形式エラー</span></article><article><b>${latest?.no||"-"}</b><span>最新収録回</span></article></div>`;
+}
 
 // ===== Ver.28 購入モード・Excel/CSV出力 =====
 function purchaseModeKey(){return `loto67_purchase_checks_${game}`}

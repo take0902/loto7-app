@@ -1,19 +1,10 @@
-AI Lottery Lab Ver.28.0 フルセット更新
+AI Lottery Lab Ver.30.0.0 更新手順
 
-追加機能
-・購入モード（大きな数字表示）
-・Excel形式（.xls）出力
-・CSV出力
-・ワンタップコピー
-・印刷／PDF保存
-・購入済みチェック
-・購入金額とAI評価表示
-
-更新方法
 1. ZIPを展開します。
-2. GitHubの loto7-app で Add file → Upload files を開きます。
-3. 展開したファイルをすべて選択してアップロードします。
-4. Commit changes を押します。
-5. Vercel反映後、Safariを完全に閉じて開き直します。
+2. 展開した全ファイルをGitHubリポジトリのルートへ上書きします。
+3. Commit changes を押します。
+4. Vercelの再デプロイ完了後、Safariを再読み込みします。
+5. 古い表示が残る場合は、ホーム画面の旧アイコンを削除してSafariから再追加してください。
 
-コード編集は不要です。loto6.json と loto7.json は既存ファイルをそのまま残してください。
+注意：app.js、index.htmlなどを個別編集する必要はありません。
+ユーザーデータは端末のLocalStorageに保存されるため、通常の上書き更新では購入履歴は消えません。

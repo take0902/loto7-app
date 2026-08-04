@@ -8,21 +8,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="app.css?v=28.0">
-<title>AI Lottery Lab Ver.28.0</title>
+<link rel="stylesheet" href="app.css?v=30.0.0">
+<title>AI Lottery Lab</title>
 </head>
 <body>
 <header class="premium-header">
 <div class="header-orb orb-one"></div><div class="header-orb orb-two"></div>
-<div class="header-top"><div class="brand"><div class="brand-icon">AI</div><div><h1>AI Lottery Lab</h1><p>ロト6・ロト7 AI Engine Ver.28.0</p></div></div><div class="header-actions"><button id="themeBtn" class="icon-button" aria-label="テーマ切替">🌙</button><button id="installBtn" class="icon-button" hidden aria-label="アプリ追加">＋</button></div></div>
+<div class="header-top"><div class="brand"><div class="brand-icon">AI</div><div><h1>AI Lottery Lab</h1><p>ロト6・ロト7 AI Engine <span data-app-version></span></p></div></div><div class="header-actions"><button id="themeBtn" class="icon-button" aria-label="テーマ切替">🌙</button><button id="installBtn" class="icon-button" hidden aria-label="アプリ追加">＋</button></div></div>
 <div class="game-switch"><button data-game="loto6" class="active"><span>6</span>ロト6</button><button data-game="loto7"><span>7</span>ロト7</button></div>
 </header>
 <main>
 <nav>
-<button data-tab="dashboard" class="active">🏠<span>ホーム</span></button><button data-tab="analysis">📊<span>分析</span></button><button data-tab="prediction">✨<span>予想</span></button><button data-tab="validation">✅<span>検証</span></button><button data-tab="history">🗂️<span>履歴</span></button><button data-tab="report">🧠<span>レポート</span></button><button data-tab="backtest">📈<span>検証分析</span></button><button data-tab="optimizer">⚙️<span>最適化</span></button><button data-tab="review">🧪<span>自動検証</span></button><button data-tab="lab">🔬<span>研究所</span></button><button data-tab="simulator">🎛️<span>シミュレーター</span></button><button data-tab="purchase">🛒<span>購入モード</span></button>
+<button data-tab="dashboard" class="active">🏠<span>ホーム</span></button><button data-tab="analysis">📊<span>分析</span></button><button data-tab="prediction">✨<span>予想</span></button><button data-tab="validation">✅<span>検証</span></button><button data-tab="history">🗂️<span>履歴</span></button><button data-tab="report">🧠<span>レポート</span></button><button data-tab="backtest">📈<span>検証分析</span></button><button data-tab="optimizer">⚙️<span>最適化</span></button><button data-tab="review">🧪<span>自動検証</span></button><button data-tab="lab">🔬<span>研究所</span></button><button data-tab="simulator">🎛️<span>シミュレーター</span></button><button data-tab="purchase">🛒<span>購入モード</span></button><button data-tab="ultimate">🚀<span>Ultimate</span></button>
 </nav>
 <section id="dashboard" class="active">
-<div class="hero-card"><div class="hero-copy"><span class="eyebrow">TODAY'S AI RESEARCH</span><h2 id="heroGameTitle">ロト6 AI分析</h2><p>複数期間の統計・構造評価・バックテストを統合。</p><div class="hero-chips"><span>Multi Window</span><span>Backtest</span><span>Optimizer</span></div></div><div class="hero-score"><span>ENGINE</span><strong>V26</strong><small>LAB</small></div></div>
+<div class="hero-card"><div class="hero-copy"><span class="eyebrow">TODAY'S AI RESEARCH</span><h2 id="heroGameTitle">ロト6 AI分析</h2><p>複数期間の統計・構造評価・バックテストを統合。</p><div class="hero-chips"><span>Multi Window</span><span>Backtest</span><span>Optimizer</span></div></div><div class="hero-score"><span>ENGINE</span><strong id="heroVersion">V30</strong><small>LAB</small></div></div>
 <div class="card rainbow-card"><h2 id="dashboardTitle"></h2><div class="kpis"><article><b id="drawCount"></b><span>内蔵回数</span></article><article><b id="latestNo"></b><span>最新回</span></article><article><b id="latestDate"></b><span>最新日</span></article><article><b id="numberRange"></b><span>数字範囲</span></article></div></div>
 <div class="card"><h3>最新抽選結果</h3><div id="latestBalls"></div><p id="latestBonus" class="muted"></p></div>
 <div class="card"><h3>データ状態</h3><div id="dataHealth"></div></div>
@@ -68,11 +68,20 @@
 </section>
 
 <section id="purchase">
-<div class="card rainbow-card"><h2>Ver.28 購入モード・出力</h2><p class="muted">確定した予想数字を大きく表示し、Excel・CSV・コピー・印刷で持ち出せます。</p></div>
+<div class="card rainbow-card"><h2><span data-app-version></span> 購入モード・出力</h2><p class="muted">確定した予想数字を大きく表示し、Excel・CSV・コピー・印刷で持ち出せます。</p></div>
 <div class="card"><div class="purchase-mode-head"><div><span class="eyebrow">PURCHASE SHEET</span><h2 id="purchaseModeTitle">次回購入数字</h2></div><div id="purchaseModeAmount" class="amount-badge">0円</div></div><div id="purchaseModeSets"></div><div class="purchase-export-grid"><button id="exportExcelBtn" class="primary">📊 Excel出力</button><button id="exportCsvBtn" class="secondary">📄 CSV出力</button><button id="copyPurchaseBtn" class="secondary">📋 数字をコピー</button><button id="printPurchaseBtn" class="secondary">🖨 印刷・PDF</button></div><p id="purchaseExportStatus" class="muted"></p></div>
 <div class="card"><h3>使い方</h3><p class="muted">予想画面で数字を生成すると自動表示されます。購入した口にはチェックを付けられます。チェック状態は端末内に保存されます。</p></div>
 </section>
+
+<section id="ultimate">
+<div class="card rainbow-card"><span class="eyebrow">ULTIMATE EDITION</span><h2>AI学習・精度ダッシュボード</h2><p class="muted">購入履歴、抽選後検証、特徴量重みを一画面で確認します。</p></div>
+<div class="card"><h3>運用成績</h3><div id="ultimateKpis" class="kpis"></div><p id="ultimateReliability" class="muted"></p></div>
+<div class="card"><h3>特徴量重要度</h3><div id="featureImportance"></div></div>
+<div class="card"><h3>直近検証トレンド</h3><div id="ultimateTrend"></div></div>
+<div class="card"><h3>データ品質診断</h3><div id="ultimateHealth"></div></div>
+<div class="notice">AIスコアは過去データ上の構造評価です。抽選自体の理論確率や当選を保証するものではありません。</div>
+</section>
 </main>
-<footer>Ver.28.0｜フルセット更新・購入履歴・自動検証・学習重み</footer>
-<script src="app.js?v=28.0"></script>
+<footer><span data-app-version></span>｜Ultimate Edition・購入履歴・自動検証・学習重み</footer>
+<script src="app.js?v=30.0.0"></script>
 </body></html>
