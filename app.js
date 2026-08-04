@@ -1,4 +1,4 @@
-// AI Lottery Lab Ver.27.0 フルセット版 2026-08-01
+// AI Lottery Lab Ver.31.2.0 統合最新版 2026-08-04
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -110,7 +110,18 @@ function injectVer21Styles(){
   style.textContent=`.purchase-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.purchase-tools input,.purchase-tools select{width:100%;box-sizing:border-box}.purchase-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.purchase-summary article{padding:14px;border-radius:14px;background:#f4f6fb;text-align:center}.purchase-summary b{display:block;font-size:1.35rem}.purchase-summary span{font-size:.82rem;color:#6b7280}.purchase-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.purchase-note{white-space:pre-wrap;padding:10px;border-radius:10px;background:#f6f7fb;margin:8px 0}.purchase-status{font-weight:800}.purchase-status.win{color:#c026d3}.purchase-status.pending{color:#b45309}.purchase-status.lose{color:#64748b}.ball.hit-main{background:linear-gradient(135deg,#10b981,#22c55e)!important;box-shadow:0 0 0 4px rgba(16,185,129,.18)}.ball.hit-bonus{background:linear-gradient(135deg,#f59e0b,#facc15)!important;color:#422006!important;box-shadow:0 0 0 4px rgba(245,158,11,.18)}.match-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:.85rem}.match-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.match-legend .m{background:#10b981}.match-legend .b{background:#f59e0b}.duplicate-warning{padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;margin:8px 0}@media(min-width:700px){.purchase-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.purchase-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}`;
   document.head.appendChild(style)
 }
-function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0|Ver\.21\.1|Ver\.21\.1\.1|Ver\.28\.0|Ver\.30\.1\.1|Ver\.31\.0\.1/g,"Ver.31.1.1")})}
+function updateVersionLabels(){
+  const version="31.2.0";
+  document.querySelectorAll("body *").forEach(el=>{
+    if(el.children.length!==0)return;
+    const text=el.textContent||"";
+    const fixed=text
+      .replace(/Ver\.\d+(?:\.\d+){0,2}/g,`Ver.${version}`)
+      .replace(/ENGINE\s+V\d+/g,"ENGINE V31");
+    if(fixed!==text)el.textContent=fixed;
+  });
+  document.title=`AI Lottery Lab Ver.${version}`;
+}
 
 function makePurchaseId(){
   return `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -157,7 +168,7 @@ function purchaseText(sets){
 async function loadJson(path){
   const gameKey=path.startsWith("loto6")?"loto6":"loto7";
   try{
-    const r=await fetch(`${path}?v=31.1.1`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=31.2.0`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
@@ -165,7 +176,7 @@ async function loadJson(path){
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=31.1.1`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=31.2.0`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
       const d=await r.json();
       if(!validRemoteDraw(gameKey,d))throw new Error(`${backupPath}: データ形式エラー`);
@@ -1337,7 +1348,7 @@ function applyReviewLearning(){
 }
 
 
-// ===== Ver.24～26 AIロジック研究所 =====
+// ===== Ver.31.2.0 AIロジック研究所 =====
 function gradeFromScore(score){return score>=90?"S":score>=80?"A":score>=68?"B":score>=55?"C":"D"}
 function featureOccurrence(rows,key){
   if(!rows.length)return 0;let ok=0;
@@ -1406,7 +1417,7 @@ function renderFilterContribution(){
 function renderVer26Lab(){if(!$("#lab"))return;renderNumberHeatmap();renderSetDiagnosisLab();renderLearningState();renderLogicComparison();renderFilterContribution()}
 
 
-// ===== Ver.27 条件シミュレーター =====
+// ===== Ver.31.2.0 条件シミュレーター =====
 let simulatorInitialized=false;
 function simRows(){const v=$("#simWindow")?.value||"300";return v==="all"?R():R().slice(-Number(v))}
 function classifyCount(value,rule){if(rule==="any")return true;if(rule==="0")return value===0;if(rule==="1")return value===1;if(rule==="2")return value>=2;return true}
@@ -1460,7 +1471,7 @@ function renderSimulatorHistory(matched){
 }
 
 
-// ===== Ver.28 購入モード・Excel/CSV出力 =====
+// ===== Ver.31.2.0 購入モード・Excel/CSV出力 =====
 function purchaseModeKey(){return `loto67_purchase_checks_${game}`}
 function purchaseModeChecks(){try{return JSON.parse(localStorage.getItem(purchaseModeKey())||"{}")||{}}catch{return {}}}
 function currentPurchaseSets(){return Array.isArray(user[game]?.sets)?user[game].sets:[]}

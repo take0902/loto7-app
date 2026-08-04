@@ -1,7 +1,7 @@
 {
-  "name": "AI Lottery Lab Ver.31.1.1",
-  "short_name": "Lottery Lab 31.1",
-  "start_url": "/?v=3111",
+  "name": "AI Lottery Lab Ver.31.2.0",
+  "short_name": "Lottery Lab 31.2",
+  "start_url": "/?v=3120",
   "scope": "/",
   "display": "standalone",
   "theme_color": "#6657ff",

@@ -1,9 +1,9 @@
-AI Lottery Lab Ver.31.1.1 修正内容
+AI Lottery Lab Ver.31.2.0 統合最新版
 
-・正常表示を確認できたVer.31.0.1を土台に作成
-・外部app-config.js依存を廃止
-・全表示をVer.31.1.1へ統一
-・ENGINE表記をV31へ統一
-・CSS/JavaScript/JSONキャッシュキーを31.1.1へ更新
-・Service Workerを無効化し旧キャッシュを削除
-・manifestの名称、short_name、start_urlを更新
+・AIロジック研究所、条件シミュレーター、AIスコアボード、購入モードをすべてVer.31.2.0へ統一
+・旧Ver.31.2.0～Ver.31.2.0の画面表記を撤去
+・実行時に旧バージョン表記が残っていてもVer.31.2.0へ補正
+・gapOf定義漏れ修正を維持
+・JSON取得失敗時のフォールバックを維持
+・キャッシュ番号、manifest、タイトル、フッターを更新
+・JavaScript構文、JSON、必須ファイル、重複IDを再検査

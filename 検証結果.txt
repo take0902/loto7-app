@@ -1,12 +1,12 @@
-AI Lottery Lab Ver.31.1.1 検証結果
+AI Lottery Lab Ver.31.2.0 検証結果
 
-・土台：実機で正常表示されたVer.31.0.1
+・土台：実機で正常表示されたVer.31.2.0
 ・JavaScript構文：正常
 ・JSON形式：正常
 ・HTML重複ID：なし
 ・HTML参照ファイル欠損：なし
 ・app-config.js依存：なし
 ・ENGINE表示：V31
-・主要表示：Ver.31.1.1
+・主要表示：Ver.31.2.0
 ・Service Worker：無効化・旧キャッシュ削除仕様
 ・manifest start_url：/?v=3111
