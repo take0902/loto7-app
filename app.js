@@ -110,7 +110,7 @@ function injectVer21Styles(){
   style.textContent=`.purchase-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.purchase-tools input,.purchase-tools select{width:100%;box-sizing:border-box}.purchase-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.purchase-summary article{padding:14px;border-radius:14px;background:#f4f6fb;text-align:center}.purchase-summary b{display:block;font-size:1.35rem}.purchase-summary span{font-size:.82rem;color:#6b7280}.purchase-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.purchase-note{white-space:pre-wrap;padding:10px;border-radius:10px;background:#f6f7fb;margin:8px 0}.purchase-status{font-weight:800}.purchase-status.win{color:#c026d3}.purchase-status.pending{color:#b45309}.purchase-status.lose{color:#64748b}.ball.hit-main{background:linear-gradient(135deg,#10b981,#22c55e)!important;box-shadow:0 0 0 4px rgba(16,185,129,.18)}.ball.hit-bonus{background:linear-gradient(135deg,#f59e0b,#facc15)!important;color:#422006!important;box-shadow:0 0 0 4px rgba(245,158,11,.18)}.match-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:.85rem}.match-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.match-legend .m{background:#10b981}.match-legend .b{background:#f59e0b}.duplicate-warning{padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;margin:8px 0}@media(min-width:700px){.purchase-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.purchase-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}`;
   document.head.appendChild(style)
 }
-function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0|Ver\.21\.1|Ver\.21\.1\.1/g,"Ver.28.0")})}
+function updateVersionLabels(){document.querySelectorAll("body *").forEach(el=>{if(el.children.length===0&&/Ver\.12\.0/.test(el.textContent||""))el.textContent=el.textContent.replace(/Ver\.12\.0|Ver\.21\.0|Ver\.21\.1|Ver\.21\.1\.1|Ver\.28\.0|Ver\.30\.1\.1/g,"Ver.31.0.0")})}
 
 function makePurchaseId(){
   return `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
@@ -157,7 +157,7 @@ function purchaseText(sets){
 async function loadJson(path){
   const gameKey=path.startsWith("loto6")?"loto6":"loto7";
   try{
-    const r=await fetch(`${path}?v=30.1.1`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=31.0.0`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
@@ -165,7 +165,7 @@ async function loadJson(path){
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=30.1.1`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=31.0.0`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
       const d=await r.json();
       if(!validRemoteDraw(gameKey,d))throw new Error(`${backupPath}: データ形式エラー`);
@@ -256,6 +256,7 @@ async function boot(){
   }
 }
 function bind(){
+  const scoreStrategy=$("#scoreStrategy");if(scoreStrategy)scoreStrategy.onchange=renderVer31Scoreboard;
   $$("[data-game]").forEach(b=>b.onclick=()=>{
     game=b.dataset.game;
     $$("[data-game]").forEach(x=>x.classList.toggle("active",x===b));
@@ -562,8 +563,41 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();renderPurchaseMode();
+  renderAnalysis();renderSets();renderCandidateScores();renderVer31Scoreboard();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();renderPurchaseMode();
 }
+
+function scoreClass(n, recent30, maxRecent, gap){
+  const ratio=maxRecent?recent30/maxRecent:0;
+  if(ratio>=.78&&gap<=5)return {label:"HOT",cls:"score-hot"};
+  if(gap>=Math.max(10,Math.round(R().length*.025)))return {label:"COLD",cls:"score-cold"};
+  return {label:"標準",cls:"score-normal"};
+}
+function numberStability(n){
+  const windows=[30,100,300].map(w=>{
+    const rows=R().slice(-Math.min(w,R().length));
+    return rows.length?rows.filter(r=>r.nums.includes(n)).length/rows.length:0;
+  });
+  const avg=mean(windows),spread=Math.max(...windows)-Math.min(...windows);
+  return Math.round(clamp((avg*7)+(1-spread*5),0,1)*100);
+}
+function renderVer31Scoreboard(){
+  const body=$("#scoreboardBody");if(!body)return;
+  const strategy=$("#scoreStrategy")?.value||"balanced";
+  const scores=multiScore(strategy),maxScore=scores[0]?.total||1;
+  const recent=R().slice(-30),counts=Array.from({length:C().max},(_,i)=>recent.filter(r=>r.nums.includes(i+1)).length),maxRecent=Math.max(...counts,1);
+  body.innerHTML=scores.map((x,i)=>{
+    const n=x.n,gap=gapOf(n,R()),recentCount=counts[n-1],kind=scoreClass(n,recentCount,maxRecent,gap),stability=numberStability(n),pct=Math.round(x.total/maxScore*100);
+    return `<tr><td>${i+1}</td><td><span class="score-ball ${kind.cls}">${String(n).padStart(2,"0")}</span></td><td><b>${pct}</b></td><td><span class="score-label ${kind.cls}">${kind.label}</span></td><td>${recentCount}回</td><td>${gap}回</td><td>${stability}</td></tr>`;
+  }).join("");
+  const reviews=user[game].reviews||[],avgHit=reviews.length?mean(reviews.map(r=>Number(r.highest)||0)):0,best=reviews.length?Math.max(...reviews.map(r=>Number(r.highest)||0)):0;
+  const confidence=Math.round(clamp(45+Math.min(R().length,500)/500*20+Math.min(reviews.length,20)/20*20-Math.abs(avgHit-C().pick*.32)*5,35,90));
+  $("#scoreKpis").innerHTML=`<article><b>${confidence}</b><span>分析信頼度</span></article><article><b>${reviews.length}</b><span>実検証回数</span></article><article><b>${avgHit.toFixed(2)}</b><span>平均最高一致</span></article><article><b>${best}</b><span>最高一致</span></article>`;
+  const top=scores.slice(0,6).map(x=>String(x.n).padStart(2,"0")).join("・");
+  $("#scoreComment").innerHTML=`<b>現在の上位候補：</b>${top}<br><span class="muted">信頼度は収録データ量と保存済み検証回数から算出しています。90点でも当選確率を意味しません。</span>`;
+  const weights=user[game].featureWeights||{};
+  $("#scoreWeights").innerHTML=Object.keys(featureNames).map(k=>{const v=Number(weights[k]||1),pct=Math.round(v/1.5*100);return `<div class="filter-row"><b>${featureNames[k]}</b><div class="bar"><i style="width:${pct}%"></i></div><em>${v.toFixed(2)}</em></div>`}).join("");
+}
+
 function renderAnalysis(){
   const o=stats($("#analysisWindow").value),rows=o.rows,max=o.rank[0].c,min=Math.min(...o.rank.map(x=>x.c));
   $("#hotNumber").textContent=o.rank[0].n+"（"+max+"）";
