@@ -8,14 +8,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="app.css?v=31.1.0">
-<title>AI Lottery Lab</title>
+<link rel="stylesheet" href="app.css?v=31.1.1">
+<title>AI Lottery Lab Ver.31.1.1</title>
 </head>
 <body>
-<script src="app-config.js?v=31.1.0"></script>
 <header class="premium-header">
 <div class="header-orb orb-one"></div><div class="header-orb orb-two"></div>
-<div class="header-top"><div class="brand"><div class="brand-icon">AI</div><div><h1>AI Lottery Lab</h1><p>ロト6・ロト7 AI Engine <span data-app-version></span></p></div></div><div class="header-actions"><button id="themeBtn" class="icon-button" aria-label="テーマ切替">🌙</button><button id="installBtn" class="icon-button" hidden aria-label="アプリ追加">＋</button></div></div>
+<div class="header-top"><div class="brand"><div class="brand-icon">AI</div><div><h1>AI Lottery Lab</h1><p>ロト6・ロト7 AI Engine Ver.31.1.1</p></div></div><div class="header-actions"><button id="themeBtn" class="icon-button" aria-label="テーマ切替">🌙</button><button id="installBtn" class="icon-button" hidden aria-label="アプリ追加">＋</button></div></div>
 <div class="game-switch"><button data-game="loto6" class="active"><span>6</span>ロト6</button><button data-game="loto7"><span>7</span>ロト7</button></div>
 </header>
 <main>
@@ -23,7 +22,7 @@
 <button data-tab="dashboard" class="active">🏠<span>ホーム</span></button><button data-tab="analysis">📊<span>分析</span></button><button data-tab="prediction">✨<span>予想</span></button><button data-tab="scoreboard">🏆<span>AIスコア</span></button><button data-tab="validation">✅<span>検証</span></button><button data-tab="history">🗂️<span>履歴</span></button><button data-tab="report">🧠<span>レポート</span></button><button data-tab="backtest">📈<span>検証分析</span></button><button data-tab="optimizer">⚙️<span>最適化</span></button><button data-tab="review">🧪<span>自動検証</span></button><button data-tab="lab">🔬<span>研究所</span></button><button data-tab="simulator">🎛️<span>シミュレーター</span></button><button data-tab="purchase">🛒<span>購入モード</span></button>
 </nav>
 <section id="dashboard" class="active">
-<div class="hero-card"><div class="hero-copy"><span class="eyebrow">TODAY'S AI RESEARCH</span><h2 id="heroGameTitle">ロト6 AI分析</h2><p>複数期間の統計・構造評価・バックテストを統合。</p><div class="hero-chips"><span>Multi Window</span><span>Backtest</span><span>Optimizer</span></div></div><div class="hero-score"><span>ENGINE</span><strong data-engine-version></strong><small>LAB</small></div></div>
+<div class="hero-card"><div class="hero-copy"><span class="eyebrow">TODAY'S AI RESEARCH</span><h2 id="heroGameTitle">ロト6 AI分析</h2><p>複数期間の統計・構造評価・バックテストを統合。</p><div class="hero-chips"><span>Multi Window</span><span>Backtest</span><span>Optimizer</span></div></div><div class="hero-score"><span>ENGINE</span><strong>V31</strong><small>LAB</small></div></div>
 <div class="card rainbow-card"><h2 id="dashboardTitle"></h2><div class="kpis"><article><b id="drawCount"></b><span>内蔵回数</span></article><article><b id="latestNo"></b><span>最新回</span></article><article><b id="latestDate"></b><span>最新日</span></article><article><b id="numberRange"></b><span>数字範囲</span></article></div></div>
 <div class="card"><h3>最新抽選結果</h3><div id="latestBalls"></div><p id="latestBonus" class="muted"></p></div>
 <div class="card"><h3>データ状態</h3><div id="dataHealth"></div></div>
@@ -32,7 +31,7 @@
 <section id="analysis"><div class="card"><h2>期間別分析</h2><label>分析期間</label><select id="analysisWindow"><option value="10">直近10回</option><option value="30">直近30回</option><option value="50">直近50回</option><option value="100" selected>直近100回</option><option value="200">直近200回</option><option value="all">全期間</option></select><div class="kpis"><article><b id="hotNumber"></b><span>最多出現</span></article><article><b id="coldNumber"></b><span>最少出現</span></article><article><b id="averageSum"></b><span>平均合計</span></article><article><b id="averageOdd"></b><span>平均奇数数</span></article></div></div><div class="card"><h3>数字ランキング</h3><div class="table-wrap"><table><thead><tr><th>順位</th><th>数字</th><th>出現</th><th>間隔</th><th>指数</th><th>比較</th></tr></thead><tbody id="rankingBody"></tbody></table></div></div><div class="card"><h3>分布分析</h3><div id="distributionCharts"></div></div></section>
 <section id="prediction"><div class="card"><h2>次回予想</h2><label>生成セット数</label><select id="setCount"><option value="5" selected>5セット</option><option value="10">10セット</option></select><label>生成方針</label><select id="strategy"><option value="balanced" selected>バランス重視</option><option value="hot">直近傾向重視</option><option value="gap">空白期間重視</option><option value="diverse">分散重視</option></select><div id="predictionSets"></div><button id="generateBtn" class="primary">予想セットを生成</button><button id="saveSetsBtn" class="secondary">購入候補として保存</button></div><div class="card"><h3>候補数字スコア</h3><div id="candidateScores"></div></div></section>
 <section id="scoreboard">
-<div class="card rainbow-card"><h2><span data-app-version></span> AIスコアボード</h2><p class="muted">全数字を同一基準で順位付けし、直近傾向・空白期間・複数期間の安定性を表示します。数値は研究用の相対指数です。</p></div>
+<div class="card rainbow-card"><h2>Ver.31 AIスコアボード</h2><p class="muted">全数字を同一基準で順位付けし、直近傾向・空白期間・複数期間の安定性を表示します。数値は研究用の相対指数です。</p></div>
 <div class="card"><h3>エンジン診断</h3><div id="scoreKpis" class="kpis"></div><div id="scoreComment" class="report-box"></div></div>
 <div class="card"><h3>全数字ランキング</h3><label>評価方針</label><select id="scoreStrategy"><option value="balanced" selected>バランス重視</option><option value="hot">直近傾向重視</option><option value="gap">空白期間重視</option><option value="diverse">分散重視</option></select><div class="table-wrap history"><table><thead><tr><th>順位</th><th>数字</th><th>AI</th><th>区分</th><th>直近30回</th><th>空白</th><th>安定性</th></tr></thead><tbody id="scoreboardBody"></tbody></table></div></div>
 <div class="card"><h3>特徴量の現在重み</h3><div id="scoreWeights"></div></div>
@@ -75,11 +74,11 @@
 </section>
 
 <section id="purchase">
-<div class="card rainbow-card"><h2><span data-app-version></span> 購入モード・出力</h2><p class="muted">確定した予想数字を大きく表示し、Excel・CSV・コピー・印刷で持ち出せます。</p></div>
+<div class="card rainbow-card"><h2>Ver.31.1.1 購入モード・出力</h2><p class="muted">確定した予想数字を大きく表示し、Excel・CSV・コピー・印刷で持ち出せます。</p></div>
 <div class="card"><div class="purchase-mode-head"><div><span class="eyebrow">PURCHASE SHEET</span><h2 id="purchaseModeTitle">次回購入数字</h2></div><div id="purchaseModeAmount" class="amount-badge">0円</div></div><div id="purchaseModeSets"></div><div class="purchase-export-grid"><button id="exportExcelBtn" class="primary">📊 Excel出力</button><button id="exportCsvBtn" class="secondary">📄 CSV出力</button><button id="copyPurchaseBtn" class="secondary">📋 数字をコピー</button><button id="printPurchaseBtn" class="secondary">🖨 印刷・PDF</button></div><p id="purchaseExportStatus" class="muted"></p></div>
 <div class="card"><h3>使い方</h3><p class="muted">予想画面で数字を生成すると自動表示されます。購入した口にはチェックを付けられます。チェック状態は端末内に保存されます。</p></div>
 </section>
 </main>
-<footer><span data-app-version></span>｜Safari安定版・購入履歴・自動検証・学習重み</footer>
-<script src="app.js?v=31.1.0"></script>
+<footer>Ver.31.1.1｜Safari安定版・購入履歴・自動検証・学習重み</footer>
+<script src="app.js?v=31.1.1"></script>
 </body></html>

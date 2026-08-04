@@ -1,10 +1,11 @@
-AI Lottery Lab Ver.31.1.0 更新手順
+AI Lottery Lab Ver.31.1.1 更新手順
 
 1. ZIPを展開します。
 2. 中の全ファイルをGitHubリポジトリ最上位へ上書きします。
-3. Vercelのデプロイ完了を待ちます。
-4. Safariで https://アプリURL.vercel.app/?v=3110 を開きます。
-5. ホーム画面版が古い場合は、一度削除してSafariから再追加します。
+3. Vercelの反映完了後、Safariで /?v=3111 を付けて開きます。
+4. 旧ホーム画面アイコンがある場合は削除後、Safariから再追加します。
 
-重要：app-config.jsを必ずindex.html、app.jsと同じ階層へ置いてください。
-今後の現行バージョンはapp-config.jsのVERSIONとENGINEで一元管理します。
+確認表示
+・ヘッダー：Ver.31.1.1
+・ENGINE：V31
+・フッター：Ver.31.1.1
