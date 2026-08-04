@@ -1,11 +1,12 @@
 // AI Lottery Lab Ultimate Edition
-const APP_VERSION="30.0.0";
+const APP_VERSION="30.1.0";
 const APP_NAME=`AI Lottery Lab Ver.${APP_VERSION}`;
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
 };
 const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
+const cloneData=value=>typeof structuredClone==="function"?structuredClone(value):JSON.parse(JSON.stringify(value));
 let game="loto6", draws={};
 const defaultUser={loto6:{sets:[],savedSets:[],checks:[]},loto7:{sets:[],savedSets:[],checks:[]}};
 let user=loadUser();
@@ -66,7 +67,7 @@ function prizeRank(g,main,bonus){
 function loadUser(){
   try{
     const raw=localStorage.getItem("loto67v12")||localStorage.getItem("loto67v11")||localStorage.getItem("loto67v6");
-    const parsed=raw?JSON.parse(raw):structuredClone(defaultUser);
+    const parsed=raw?JSON.parse(raw):cloneData(defaultUser);
     for(const g of ["loto6","loto7"]){
       parsed[g]??={};
       parsed[g].sets??=[];
@@ -80,7 +81,7 @@ function loadUser(){
       parsed[g].learningLog??=[];
     }
     return parsed;
-  }catch{return structuredClone(defaultUser)}
+  }catch{return cloneData(defaultUser)}
 }
 function save(){localStorage.setItem("loto67v12",JSON.stringify(user))}
 function createSafetyBackup(reason="自動バックアップ"){
@@ -171,12 +172,22 @@ async function loadJson(path){
     return data;
   }catch(primaryError){
     const backupPath=path.startsWith("loto6")?"loto6_latest_backup.json":"loto7_latest_backup.json";
-    const r=await fetch(backupPath,{cache:"no-store"});
-    if(!r.ok)throw primaryError;
-    const latest=await r.json();
-    if(!validRemoteDraw(path.startsWith("loto6")?"loto6":"loto7",latest))throw primaryError;
-    console.warn(`${path}が見つからないため最新バックアップで起動しました`,primaryError);
-    return [latest];
+    try{
+      const r=await fetch(backupPath,{cache:"no-store"});
+      if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
+      const latest=await r.json();
+      if(!validRemoteDraw(path.startsWith("loto6")?"loto6":"loto7",latest))throw new Error("バックアップ形式エラー");
+      console.warn(`${path}が見つからないため最新バックアップで起動しました`,primaryError);
+      return [latest];
+    }catch(backupError){
+      const g=path.startsWith("loto6")?"loto6":"loto7";
+      const embedded={
+        loto6:{no:2124,date:"2026-07-30",nums:[6,20,29,36,37,41],bonus:[19]},
+        loto7:{no:688,date:"2026-07-31",nums:[4,21,25,28,30,35,37],bonus:[12,16]}
+      }[g];
+      console.warn("内蔵緊急データで起動します",primaryError,backupError);
+      return [embedded];
+    }
   }
 }
 
@@ -244,10 +255,16 @@ async function boot(){
     updateVersionLabels();
     await Promise.all([fetchRemoteLatest("loto6",{silent:true}),fetchRemoteLatest("loto7",{silent:true})]);
     render();updateVersionLabels();
-    if("serviceWorker" in navigator)navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
+    }
+    if("caches" in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}
   }catch(e){
     console.error(e);
-    document.body.innerHTML=`<main><div class="card"><h2>データを読み込めませんでした</h2><p>${String(e.message||e)}</p><button onclick="location.reload()" class="primary">再読み込み</button></div></main>`;
+    const msg=document.createElement("div");
+    msg.className="startup-error";
+    msg.innerHTML=`<b>起動時エラー</b><span>${String(e.message||e)}</span><button onclick="location.reload()">再読み込み</button>`;
+    document.body.prepend(msg);
   }
 }
 function bind(){

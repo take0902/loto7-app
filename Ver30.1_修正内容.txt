@@ -1,0 +1,8 @@
+Ver.30.1.0 修正内容
+・iPhone Safariで白画面になる問題への対策
+・CSSとJavaScriptをindex.htmlへ内蔵
+・外部JSON取得失敗時の内蔵緊急データ起動
+・旧Service Workerとキャッシュの自動解除
+・起動エラー時に画面全体を消さずエラー表示
+・structuredClone非対応環境への互換処理
+・バージョン表記を30.1.0へ統一

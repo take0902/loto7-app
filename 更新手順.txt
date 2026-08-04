@@ -1,10 +1,10 @@
-AI Lottery Lab Ver.30.0.0 更新手順
+AI Lottery Lab Ver.30.1.0 更新手順
 
-1. ZIPを展開します。
-2. 展開した全ファイルをGitHubリポジトリのルートへ上書きします。
-3. Commit changes を押します。
-4. Vercelの再デプロイ完了後、Safariを再読み込みします。
-5. 古い表示が残る場合は、ホーム画面の旧アイコンを削除してSafariから再追加してください。
+1. このZIPを展開します。
+2. GitHubリポジトリのルートへ、中の全ファイルを上書きアップロードします。
+3. Vercelのデプロイ完了を待ちます。
+4. SafariでURL末尾に ?v=301 を付けて一度開きます。
+   例：https://xxxxx.vercel.app/?v=301
+5. 正常表示後は通常URLで利用できます。
 
-注意：app.js、index.htmlなどを個別編集する必要はありません。
-ユーザーデータは端末のLocalStorageに保存されるため、通常の上書き更新では購入履歴は消えません。
+今回はindex.html単体にもCSS・JavaScriptを内蔵しているため、app.cssやapp.jsの読み込みに失敗しても画面が表示されます。旧Service Workerと旧キャッシュは起動時に解除されます。
