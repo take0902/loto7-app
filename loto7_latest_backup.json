@@ -13,5 +13,7 @@
   "bonus": [
     12,
     16
-  ]
+  ],
+  "verified": false,
+  "source": "内蔵フォールバック"
 }
