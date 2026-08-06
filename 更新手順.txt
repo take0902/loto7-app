@@ -1,4 +1,12 @@
-1. ZIPを展開します。
-2. 中の全ファイルをGitHubリポジトリ最上位へ上書きします。
-3. Vercelの反映完了後、Safariで /?v=3120 を付けて開きます。
-4. 画面上の各機能がVer.31.2.0、ENGINE V31で統一されていることを確認します。
+AI Lottery Lab Ver.32.0.0 更新手順
+
+【最初の1回】
+1. このZIPを展開し、GitHubの take0902/loto7-app 最上位へ全ファイルを上書きします。
+2. VercelのEnvironment Variablesへ GITHUB_TOKEN / UPDATE_ADMIN_SECRET / GITHUB_OWNER / GITHUB_REPO / GITHUB_BRANCH を登録します。
+3. Vercelを再デプロイします。
+
+【2回目以降】
+1. アプリの「自動更新」を開きます。
+2. 完成版ZIPを選択します。
+3. 管理パスワードを入力し「検査して自動更新」を押します。
+4. GitHubコミット後、Vercelが自動公開します。

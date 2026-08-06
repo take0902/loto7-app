@@ -1,4 +1,4 @@
-// AI Lottery Lab Ver.31.2.0 統合最新版 2026-08-04
+// AI Lottery Lab Ver.32.0.0 統合最新版 2026-08-04
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -111,13 +111,13 @@ function injectVer21Styles(){
   document.head.appendChild(style)
 }
 function updateVersionLabels(){
-  const version="31.2.0";
+  const version="32.0.0";
   document.querySelectorAll("body *").forEach(el=>{
     if(el.children.length!==0)return;
     const text=el.textContent||"";
     const fixed=text
       .replace(/Ver\.\d+(?:\.\d+){0,2}/g,`Ver.${version}`)
-      .replace(/ENGINE\s+V\d+/g,"ENGINE V31");
+      .replace(/ENGINE\s+V\d+/g,"ENGINE V32");
     if(fixed!==text)el.textContent=fixed;
   });
   document.title=`AI Lottery Lab Ver.${version}`;
@@ -168,7 +168,7 @@ function purchaseText(sets){
 async function loadJson(path){
   const gameKey=path.startsWith("loto6")?"loto6":"loto7";
   try{
-    const r=await fetch(`${path}?v=31.2.0`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=32.0.0`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
@@ -176,7 +176,7 @@ async function loadJson(path){
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=31.2.0`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=32.0.0`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
       const d=await r.json();
       if(!validRemoteDraw(gameKey,d))throw new Error(`${backupPath}: データ形式エラー`);
@@ -283,6 +283,7 @@ function bind(){
     if(b.dataset.tab==="lab")renderVer26Lab();
     if(b.dataset.tab==="simulator")renderSimulatorDefaults();
     if(b.dataset.tab==="purchase")renderPurchaseMode();
+    if(b.dataset.tab==="updater")renderUpdaterPanel();
   });
   $("#analysisWindow").onchange=renderAnalysis;
   $("#reportWindow").onchange=renderReport;
@@ -313,6 +314,7 @@ function bind(){
   if($("#exportCsvBtn"))$("#exportCsvBtn").onclick=exportPurchaseCsv;
   if($("#copyPurchaseBtn"))$("#copyPurchaseBtn").onclick=copyPurchaseMode;
   if($("#printPurchaseBtn"))$("#printPurchaseBtn").onclick=()=>window.print();
+  initAutoUpdater();
   let prompt;
   window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();prompt=e;$("#installBtn").hidden=false});
   $("#installBtn").onclick=async()=>{if(prompt){prompt.prompt();await prompt.userChoice;prompt=null;$("#installBtn").hidden=true}};
@@ -578,7 +580,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderVer31Scoreboard();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();renderPurchaseMode();
+  renderAnalysis();renderSets();renderCandidateScores();renderVer31Scoreboard();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();renderPurchaseMode();renderUpdaterPanel();
 }
 
 function scoreClass(n, recent30, maxRecent, gap){
@@ -1348,7 +1350,7 @@ function applyReviewLearning(){
 }
 
 
-// ===== Ver.31.2.0 AIロジック研究所 =====
+// ===== Ver.32.0.0 AIロジック研究所 =====
 function gradeFromScore(score){return score>=90?"S":score>=80?"A":score>=68?"B":score>=55?"C":"D"}
 function featureOccurrence(rows,key){
   if(!rows.length)return 0;let ok=0;
@@ -1417,7 +1419,7 @@ function renderFilterContribution(){
 function renderVer26Lab(){if(!$("#lab"))return;renderNumberHeatmap();renderSetDiagnosisLab();renderLearningState();renderLogicComparison();renderFilterContribution()}
 
 
-// ===== Ver.31.2.0 条件シミュレーター =====
+// ===== Ver.32.0.0 条件シミュレーター =====
 let simulatorInitialized=false;
 function simRows(){const v=$("#simWindow")?.value||"300";return v==="all"?R():R().slice(-Number(v))}
 function classifyCount(value,rule){if(rule==="any")return true;if(rule==="0")return value===0;if(rule==="1")return value===1;if(rule==="2")return value>=2;return true}
@@ -1471,7 +1473,7 @@ function renderSimulatorHistory(matched){
 }
 
 
-// ===== Ver.31.2.0 購入モード・Excel/CSV出力 =====
+// ===== Ver.32.0.0 購入モード・Excel/CSV出力 =====
 function purchaseModeKey(){return `loto67_purchase_checks_${game}`}
 function purchaseModeChecks(){try{return JSON.parse(localStorage.getItem(purchaseModeKey())||"{}")||{}}catch{return {}}}
 function currentPurchaseSets(){return Array.isArray(user[game]?.sets)?user[game].sets:[]}
@@ -1511,6 +1513,49 @@ async function copyPurchaseMode(){
   const sets=currentPurchaseSets();if(!sets.length)return alert("コピーする予想セットがありません");
   const text=`${C().name} 第${currentPurchaseDrawNo()}回\n`+sets.map((s,i)=>`${i+1}. ${s.map(n=>String(n).padStart(2,"0")).join(" ")}`).join("\n");
   try{await navigator.clipboard.writeText(text);$("#purchaseExportStatus").textContent="購入数字をコピーしました"}catch{alert("コピーできませんでした")}
+}
+
+
+// ===== Ver.32.0.0 GitHub/Vercel 自動アップデート =====
+const UPDATE_MAX_BYTES=3*1024*1024;
+function renderUpdaterPanel(){
+  const status=$("#updateStatus");
+  if(!status)return;
+  const file=$("#releaseZip")?.files?.[0];
+  if(file){
+    $("#updateFileInfo").innerHTML=`<b>${escapeHtml(file.name)}</b><br>${(file.size/1024).toFixed(1)} KB`;
+  }
+}
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function initAutoUpdater(){
+  const file=$("#releaseZip"),btn=$("#runUpdateBtn");
+  if(file&&!file.dataset.bound){file.dataset.bound="1";file.onchange=renderUpdaterPanel}
+  if(btn&&!btn.dataset.bound){btn.dataset.bound="1";btn.onclick=runAutoUpdate}
+}
+async function runAutoUpdate(){
+  const file=$("#releaseZip")?.files?.[0],secret=$("#updateSecret")?.value||"",message=$("#updateMessage")?.value.trim()||`AI Lottery Lab Ver.32 update`;
+  const status=$("#updateStatus"),btn=$("#runUpdateBtn");
+  if(!file)return alert("完成版ZIPを選択してください");
+  if(!/\.zip$/i.test(file.name))return alert("ZIPファイルを選択してください");
+  if(file.size>UPDATE_MAX_BYTES)return alert("ZIPは3MB以下にしてください");
+  if(!secret)return alert("管理パスワードを入力してください");
+  if(!confirm(`${file.name} をGitHubの公開ブランチへ反映しますか？`))return;
+  btn.disabled=true;status.className="muted";status.textContent="ZIPを送信し、サーバー側で検査しています…";
+  try{
+    const body=await file.arrayBuffer();
+    const response=await fetch(`/api/update?message=${encodeURIComponent(message)}`,{
+      method:"POST",
+      headers:{"Content-Type":"application/octet-stream","X-Update-Secret":secret,"X-File-Name":encodeURIComponent(file.name)},
+      body
+    });
+    const data=await response.json().catch(()=>({ok:false,error:`HTTP ${response.status}`}));
+    if(!response.ok||!data.ok)throw new Error(data.error||`HTTP ${response.status}`);
+    status.className="ok";
+    status.innerHTML=`更新コミットを作成しました。<br>バージョン：${escapeHtml(data.version||"-")}<br>コミット：${escapeHtml((data.commit||"").slice(0,7))}<br>Vercel反映まで通常数分かかります。`;
+    $("#updateSecret").value="";
+  }catch(error){
+    status.className="warn";status.textContent=`更新失敗：${error.message||error}`;
+  }finally{btn.disabled=false}
 }
 
 boot();
