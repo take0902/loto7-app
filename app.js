@@ -1,7 +1,7 @@
-// AI Lottery Lab Professional 1.0.0 — unified stable release
+// AI Lottery Lab Professional 1.0.1 — historical data repair release
 const config={
-  loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
-  loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
+  loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json",csv:"loto6_data.csv"},
+  loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json",csv:"loto7_data.csv"}
 };
 const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
 let game="loto6", draws={};
@@ -112,9 +112,9 @@ function injectRuntimeStyles(){
 }
 const APP_META=Object.freeze({
   name:"AI Lottery Lab Professional",
-  version:"1.0.0",
+  version:"1.0.1",
   engine:"PRO 1",
-  build:"2026-08-06"
+  build:"2026-08-06-datafix"
 });
 function applyAppMeta(){
   document.title=`${APP_META.name} ${APP_META.version}`;
@@ -165,32 +165,71 @@ function parsePurchaseText(text){
 function purchaseText(sets){
   return (sets||[]).map(a=>a.map(n=>String(n).padStart(2,"0")).join(",")).join("\n");
 }
+function parseCsvRows(text,g){
+  const c=config[g];
+  const lines=String(text||"").replace(/^\uFEFF/,"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(lines.length<2)return [];
+  const split=line=>line.split(/[,\t;]/).map(x=>x.trim().replace(/^"|"$/g,""));
+  const header=split(lines[0]).map(x=>x.toLowerCase().replace(/\s+/g,""));
+  const indexOf=(names)=>{for(const n of names){const i=header.indexOf(n);if(i>=0)return i}return -1};
+  const noI=indexOf(["no","回","回号","回別","draw","drawno","number"]);
+  const dateI=indexOf(["date","抽選日","抽せん日","日付"]);
+  let numIdx=[];
+  for(let i=1;i<=c.pick;i++)numIdx.push(indexOf([`n${i}`,`num${i}`,`number${i}`,`本数字${i}`,`数字${i}`]));
+  let bonusIdx=[];
+  for(let i=1;i<=c.bonus;i++)bonusIdx.push(indexOf([`b${i}`,`bonus${i}`,`ボーナス${i}`,`bonus数字${i}`]));
+  const headerDetected=numIdx.every(i=>i>=0);
+  const rows=[];
+  for(let li=headerDetected?1:0;li<lines.length;li++){
+    const a=split(lines[li]);
+    let no,date,nums,bonus;
+    if(headerDetected){
+      no=Number(a[noI]);date=dateI>=0?a[dateI]:"";
+      nums=numIdx.map(i=>Number(a[i]));bonus=bonusIdx.map(i=>Number(a[i]));
+    }else{
+      // 代表的な並び: 回号,日付,本数字...,ボーナス... / 日付,本数字...,ボーナス...
+      const firstIsDate=/^\d{4}[\/-]\d{1,2}[\/-]\d{1,2}/.test(a[0]||"");
+      if(firstIsDate){date=a[0];nums=a.slice(1,1+c.pick).map(Number);bonus=a.slice(1+c.pick,1+c.pick+c.bonus).map(Number);no=li+1}
+      else{no=Number(String(a[0]||"").replace(/\D/g,""));date=a[1]||"";nums=a.slice(2,2+c.pick).map(Number);bonus=a.slice(2+c.pick,2+c.pick+c.bonus).map(Number)}
+    }
+    const d={no:Number(no),date:String(date||"").replace(/\//g,"-"),nums,bonus};
+    if(validRemoteDraw(g,d))rows.push(d);
+  }
+  return mergeDraws([],rows);
+}
+
+async function fetchCsvHistory(g){
+  const path=config[g].csv;
+  try{
+    const r=await fetch(`${path}?v=1.0.1`,{cache:"no-store"});
+    if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
+    const rows=parseCsvRows(await r.text(),g);
+    if(rows.length<10)throw new Error(`${path}: 有効データが${rows.length}回分しかありません`);
+    return rows;
+  }catch(e){console.warn("CSV履歴を利用できません",g,e);return []}
+}
+
 async function loadJson(path){
   const gameKey=path.startsWith("loto6")?"loto6":"loto7";
+  const csvRows=await fetchCsvHistory(gameKey);
+  let jsonRows=[];
   try{
-    const r=await fetch(`${path}?v=1.0.0`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=1.0.1`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
-    return data;
+    jsonRows=data.filter(d=>validRemoteDraw(gameKey,d));
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=1.0.0`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=1.0.1`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
-      const d=await r.json();
-      if(!validRemoteDraw(gameKey,d))throw new Error(`${backupPath}: データ形式エラー`);
-      console.warn(`${path}を取得できないためバックアップで起動`,primaryError);
-      return [d];
-    }catch(backupError){
-      const emergency={
-        loto6:{no:2124,date:"2026-07-30",nums:[6,20,29,36,37,41],bonus:[19]},
-        loto7:{no:688,date:"2026-07-31",nums:[4,21,25,28,30,35,37],bonus:[12,16]}
-      };
-      console.warn("内蔵緊急データで起動",primaryError,backupError);
-      return [emergency[gameKey]];
-    }
+      const d=await r.json();if(validRemoteDraw(gameKey,d))jsonRows=[d];
+    }catch(backupError){console.warn("JSONとバックアップを取得できません",primaryError,backupError)}
   }
+  const merged=mergeDraws(csvRows,jsonRows);
+  if(merged.length)return merged;
+  throw new Error(`${gameKey}: 利用可能な抽選履歴がありません`);
 }
 
 function validRemoteDraw(g,d){
@@ -1533,7 +1572,7 @@ function initAutoUpdater(){
   if(btn&&!btn.dataset.bound){btn.dataset.bound="1";btn.onclick=runAutoUpdate}
 }
 async function runAutoUpdate(){
-  const file=$("#releaseZip")?.files?.[0],secret=$("#updateSecret")?.value||"",message=$("#updateMessage")?.value.trim()||`AI Lottery Lab Professional 1.0.0 update`;
+  const file=$("#releaseZip")?.files?.[0],secret=$("#updateSecret")?.value||"",message=$("#updateMessage")?.value.trim()||`AI Lottery Lab Professional 1.0.1 update`;
   const status=$("#updateStatus"),btn=$("#runUpdateBtn");
   if(!file)return alert("完成版ZIPを選択してください");
   if(!/\.zip$/i.test(file.name))return alert("ZIPファイルを選択してください");
