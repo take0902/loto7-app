@@ -1,4 +1,4 @@
-// AI Lottery Lab Professional 1.0.1 — historical data repair release
+// AI Lottery Lab Professional 1.0.2 — historical data repair release
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json",csv:"loto6_data.csv"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json",csv:"loto7_data.csv"}
@@ -112,7 +112,7 @@ function injectRuntimeStyles(){
 }
 const APP_META=Object.freeze({
   name:"AI Lottery Lab Professional",
-  version:"1.0.1",
+  version:"1.0.2",
   engine:"PRO 1",
   build:"2026-08-06-datafix"
 });
@@ -201,7 +201,7 @@ function parseCsvRows(text,g){
 async function fetchCsvHistory(g){
   const path=config[g].csv;
   try{
-    const r=await fetch(`${path}?v=1.0.1`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=1.0.2`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const rows=parseCsvRows(await r.text(),g);
     if(rows.length<10)throw new Error(`${path}: 有効データが${rows.length}回分しかありません`);
@@ -214,7 +214,7 @@ async function loadJson(path){
   const csvRows=await fetchCsvHistory(gameKey);
   let jsonRows=[];
   try{
-    const r=await fetch(`${path}?v=1.0.1`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=1.0.2`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
@@ -222,7 +222,7 @@ async function loadJson(path){
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=1.0.1`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=1.0.2`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
       const d=await r.json();if(validRemoteDraw(gameKey,d))jsonRows=[d];
     }catch(backupError){console.warn("JSONとバックアップを取得できません",primaryError,backupError)}
@@ -244,22 +244,32 @@ async function fetchRemoteLatest(g,{silent=false}={}){
   const state=remoteUpdateState[g];
   state.status="確認中";state.error="";
   if(!silent)renderRemoteUpdatePanel();
+  const candidates=[
+    `/api/latest?game=${encodeURIComponent(g)}&_=${Date.now()}`,
+    `latest.json?_=${Date.now()}`
+  ];
+  let lastError=null;
   try{
-    const r=await fetch(`latest.json?_=${Date.now()}`,{cache:"no-store",headers:{Accept:"application/json"}});
-    if(!r.ok)throw new Error(`latest.json HTTP ${r.status}`);
-    const all=await r.json();
-    const data=all?.[g];
-    if(!validRemoteDraw(g,data))throw new Error(`${g}の最新データ形式を確認できませんでした`);
-    const draw={...data,no:Number(data.no),nums:data.nums.map(Number).sort((a,b)=>a-b),bonus:data.bonus.map(Number).sort((a,b)=>a-b)};
-    const before=draws[g]?.at(-1)?.no||0;
-    draws[g]=mergeDraws(draws[g]||[],[draw]);
-    upsertManualDraw(g,draw);
-    save();
-    state.status=draw.no>before?"更新完了":"最新確認済み";
-    state.source="latest.json（安定データ）";
-    state.checkedAt=new Date().toISOString();
-    state.error="";
-    return draw;
+    for(const url of candidates){
+      try{
+        const r=await fetch(url,{cache:"no-store",headers:{Accept:"application/json"}});
+        if(!r.ok)throw new Error(`${url} HTTP ${r.status}`);
+        const payload=await r.json();
+        const data=payload?.[g]||payload?.draw||payload;
+        if(!validRemoteDraw(g,data))throw new Error(`${url}: ${g}の抽選データ形式が不正です`);
+        const draw={...data,no:Number(data.no),nums:data.nums.map(Number).sort((a,b)=>a-b),bonus:data.bonus.map(Number).sort((a,b)=>a-b)};
+        const before=draws[g]?.at(-1)?.no||0;
+        draws[g]=mergeDraws(draws[g]||[],[draw]);
+        upsertManualDraw(g,draw);
+        save();
+        state.status=draw.no>before?"更新完了":"最新確認済み";
+        state.source=url.startsWith('/api/')?`${payload.source||"公開当せん番号ページ"}（オンライン確認）`:"latest.json（内蔵フォールバック）";
+        state.checkedAt=new Date().toISOString();
+        state.error="";
+        return draw;
+      }catch(e){lastError=e;console.warn('latest candidate failed',url,e)}
+    }
+    throw lastError||new Error('最新データを取得できませんでした');
   }catch(e){
     state.status="確認失敗";state.error=String(e.message||e);state.checkedAt=new Date().toISOString();
     console.warn(`${g} latest update failed`,e);
@@ -1241,21 +1251,10 @@ function runLatestAutoReview(){
   const matchingIndex=saved.findIndex(x=>Number(x.drawNo)===Number(latest.no));
   $("#reviewSavedSet").value=String(matchingIndex>=0?matchingIndex:0);
 
-  const inputNo=Number($("#reviewDrawNo").value);
-  const inputWinning=parseNums($("#reviewWinning").value);
-  const inputBonus=parseNums($("#reviewBonus").value);
-
-  const manualInputOk=
-    inputNo>latest.no &&
-    inputWinning.length===C().pick &&
-    inputBonus.length===C().bonus;
-
-  if(!manualInputOk){
-    $("#reviewDrawNo").value=latest.no;
-    $("#reviewWinning").value=latest.nums.join(",");
-    $("#reviewBonus").value=latest.bonus.join(",");
-  }
-
+  // 「最新結果で自動検証」は保存予想や手入力を抽選結果として流用しない。
+  $("#reviewDrawNo").value=latest.no;
+  $("#reviewWinning").value=latest.nums.join(",");
+  $("#reviewBonus").value=latest.bonus.join(",");
   runAutoReview();
 }
 
@@ -1572,7 +1571,7 @@ function initAutoUpdater(){
   if(btn&&!btn.dataset.bound){btn.dataset.bound="1";btn.onclick=runAutoUpdate}
 }
 async function runAutoUpdate(){
-  const file=$("#releaseZip")?.files?.[0],secret=$("#updateSecret")?.value||"",message=$("#updateMessage")?.value.trim()||`AI Lottery Lab Professional 1.0.1 update`;
+  const file=$("#releaseZip")?.files?.[0],secret=$("#updateSecret")?.value||"",message=$("#updateMessage")?.value.trim()||`AI Lottery Lab Professional 1.0.2 update`;
   const status=$("#updateStatus"),btn=$("#runUpdateBtn");
   if(!file)return alert("完成版ZIPを選択してください");
   if(!/\.zip$/i.test(file.name))return alert("ZIPファイルを選択してください");
