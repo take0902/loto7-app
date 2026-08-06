@@ -1,33 +1,36 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/official/loto6/:file*",
+      "destination": "https://www.mizuhobank.co.jp/takarakuji/apl/txt/loto6/:file*"
+    },
+    {
+      "source": "/official/loto7/:file*",
+      "destination": "https://www.mizuhobank.co.jp/takarakuji/apl/txt/loto7/:file*"
+    }
+  ],
   "headers": [
     {
-      "source": "/(.*\\.css)",
+      "source": "/official/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
+        {"key": "Cache-Control", "value": "no-store, max-age=0"},
+        {"key": "x-vercel-enable-rewrite-caching", "value": "0"}
       ]
+    },
+    {
+      "source": "/(.*\\.css)",
+      "headers": [{"key": "Cache-Control", "value": "public, max-age=0, must-revalidate"}]
     },
     {
       "source": "/(.*\\.js)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
+      "headers": [{"key": "Cache-Control", "value": "public, max-age=0, must-revalidate"}]
     },
     {
       "source": "/(.*\\.json)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store"
-        }
-      ]
+      "headers": [{"key": "Cache-Control", "value": "no-store"}]
     }
   ]
 }

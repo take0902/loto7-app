@@ -1,4 +1,4 @@
-# AI Lottery Lab Professional 2.1.0 iPhone Flat Edition
+# AI Lottery Lab Professional 2.1.1 iPhone Flat Edition
 
 - フォルダ不要・ルートファイルだけで更新
 - 最新当たり番号はアプリ内の「最新当たり番号を登録」から手入力
