@@ -1,4 +1,4 @@
-// AI Lottery Lab Professional 2.0.0 — stable official-data and prize-check release
+// AI Lottery Lab Professional 2.1.0 — stable official-data and prize-check release
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json",csv:"loto6_data.csv"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json",csv:"loto7_data.csv"}
@@ -126,9 +126,9 @@ function injectRuntimeStyles(){
 }
 const APP_META=Object.freeze({
   name:"AI Lottery Lab Professional",
-  version:"2.0.0",
-  engine:"PRO 2",
-  build:"2026-08-06-stable"
+  version:"2.1.0",
+  engine:"PRO 2.1",
+  build:"2026-08-06-iphone-flat"
 });
 function applyAppMeta(){
   document.title=`${APP_META.name} ${APP_META.version}`;
@@ -215,7 +215,7 @@ function parseCsvRows(text,g){
 async function fetchCsvHistory(g){
   const path=config[g].csv;
   try{
-    const r=await fetch(`${path}?v=2.0.0`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=2.1.0`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const rows=parseCsvRows(await r.text(),g);
     if(rows.length<10)throw new Error(`${path}: 有効データが${rows.length}回分しかありません`);
@@ -228,7 +228,7 @@ async function loadJson(path){
   const csvRows=await fetchCsvHistory(gameKey);
   let jsonRows=[];
   try{
-    const r=await fetch(`${path}?v=2.0.0`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=2.1.0`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
@@ -236,13 +236,14 @@ async function loadJson(path){
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=2.0.0`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=2.1.0`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
       const d=await r.json();if(validRemoteDraw(gameKey,d))jsonRows=[{...d,verified:d.verified===true,source:d.source||"内蔵バックアップ"}];
     }catch(backupError){console.warn("JSONとバックアップを取得できません",primaryError,backupError)}
   }
   const cached=loadVerifiedDraw(gameKey);
-  const merged=mergeDraws(csvRows,[...jsonRows,...(cached?[cached]:[])]);
+  const manual=loadManualOfficial(gameKey);
+  const merged=mergeDraws(csvRows,[...jsonRows,...(cached?[cached]:[]),...(manual?[manual]:[])]);
   if(merged.length)return merged;
   throw new Error(`${gameKey}: 利用可能な抽選履歴がありません`);
 }
@@ -259,10 +260,7 @@ async function fetchRemoteLatest(g,{silent=false}={}){
   const state=remoteUpdateState[g];
   state.status="確認中";state.error="";
   if(!silent)renderRemoteUpdatePanel();
-  const candidates=[
-    `/api/latest?game=${encodeURIComponent(g)}&_=${Date.now()}`,
-    `latest.json?_=${Date.now()}`
-  ];
+  const candidates=[`latest.json?_=${Date.now()}`];
   let lastError=null;
   try{
     for(const url of candidates){
@@ -272,7 +270,7 @@ async function fetchRemoteLatest(g,{silent=false}={}){
         const payload=await r.json();
         const data=payload?.[g]||payload?.draw||payload;
         if(!validRemoteDraw(g,data))throw new Error(`${url}: ${g}の抽選データ形式が不正です`);
-        const isOfficial=url.startsWith('/api/')&&payload?.ok===true&&payload?.source?.includes("公式");
+        const isOfficial=data.verified===true&&String(data.source||payload?.source||'').includes('公式');
         const draw={...data,no:Number(data.no),nums:data.nums.map(Number).sort((a,b)=>a-b),bonus:data.bonus.map(Number).sort((a,b)=>a-b),verified:isOfficial||data.verified===true,source:isOfficial?(payload.source||"みずほ銀行公式CSV"):(data.source||"内蔵データ")};
         const before=draws[g]?.at(-1)?.no||0;
         draws[g]=mergeDraws(draws[g]||[],[draw]);
@@ -316,6 +314,43 @@ async function autoReviewMatchingOfficial(g,draw){
   game=oldGame;render();
 }
 
+
+function manualResultKey(g){return `loto67_manual_official_${g}_v21`}
+function loadManualOfficial(g){
+  try{const d=JSON.parse(localStorage.getItem(manualResultKey(g))||"null");return validRemoteDraw(g,d)&&d.verified===true?d:null}catch{return null}
+}
+function saveManualOfficial(g,d){localStorage.setItem(manualResultKey(g),JSON.stringify(d))}
+function ensureManualResultPanel(){
+  if($("#manualResultPanel"))return;
+  const remote=$("#remoteUpdatePanel");if(!remote)return;
+  const card=document.createElement("div");card.id="manualResultPanel";card.className="card";
+  remote.insertAdjacentElement("afterend",card);
+}
+function renderManualResultPanel(){
+  ensureManualResultPanel();const box=$("#manualResultPanel");if(!box)return;
+  const c=C(), current=loadManualOfficial(game), latest=R()?.at(-1);
+  box.innerHTML=`<h2>最新当たり番号を登録</h2><p class="muted">iPhone専用版です。宝くじ公式サイトで確認した結果だけを入力してください。</p>
+  <label>抽選回号</label><input id="manualOfficialNo" inputmode="numeric" value="${current?.no||latest?.no||''}">
+  <label>抽選日</label><input id="manualOfficialDate" type="date" value="${current?.date||latest?.date||''}">
+  <label>本数字（カンマ区切り）</label><input id="manualOfficialNums" value="${current?.nums?.join(',')||''}" placeholder="例：1,2,3,4,5,6">
+  <label>ボーナス数字</label><input id="manualOfficialBonus" value="${current?.bonus?.join(',')||''}" placeholder="例：7">
+  <label style="display:flex;gap:8px;align-items:center;margin:12px 0"><input id="manualOfficialConfirm" type="checkbox"> 宝くじ公式サイトで照合しました</label>
+  <button id="saveManualOfficialBtn" class="primary">公式確認済みとして保存</button>
+  <p id="manualOfficialStatus" class="muted">${current?`保存済み：第${current.no}回`:'未登録'}</p>`;
+  $("#saveManualOfficialBtn").onclick=saveManualOfficialFromForm;
+}
+function saveManualOfficialFromForm(){
+  const no=Number($("#manualOfficialNo").value),date=$("#manualOfficialDate").value;
+  const nums=parseNums($("#manualOfficialNums").value),bonus=parseNums($("#manualOfficialBonus").value);
+  if(!$("#manualOfficialConfirm").checked)return alert("公式サイトで照合した場合だけ保存できます。");
+  const d={no,date,nums,bonus,verified:true,source:"ユーザー手動登録（宝くじ公式照合済み）"};
+  if(!validRemoteDraw(game,d))return alert(`数字の個数・重複・範囲を確認してください。本数字${C().pick}個、ボーナス${C().bonus}個です。`);
+  const current=R()?.at(-1);
+  if(current&&Number(d.no)<Number(current.no)&&!confirm(`現在の収録最新回は第${current.no}回です。古い第${d.no}回を登録しますか？`))return;
+  saveManualOfficial(game,d);saveVerifiedDraw(game,d);draws[game]=mergeDraws(draws[game]||[],[d]);
+  remoteUpdateState[game]={status:"手動更新完了",source:d.source,checkedAt:new Date().toISOString(),error:""};
+  autoReviewMatchingOfficial(game,d);render();
+}
 async function refreshAllLatest(){
   const btn=$("#refreshLatestBtn");if(btn)btn.disabled=true;
   await Promise.all([fetchRemoteLatest("loto6",{silent:true}),fetchRemoteLatest("loto7",{silent:true})]);
