@@ -1,105 +1,12 @@
-// AI Lottery Lab Ver.21.1.2
-// Vercel root function. /api/latest is routed here by vercel.json.
-module.exports = async function handler(req, res) {
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-
-  if (req.method === "OPTIONS") return res.status(204).end();
-  if (req.method !== "GET") return res.status(405).json({ ok:false, error:"METHOD_NOT_ALLOWED" });
-
-  try {
-    const [loto6, loto7] = await Promise.all([
-      fetchLatest("loto6"),
-      fetchLatest("loto7")
-    ]);
-
-    return res.status(200).json({
-      ok: true,
-      checkedAt: new Date().toISOString(),
-      loto6,
-      loto7
-    });
-  } catch (error) {
-    return res.status(500).json({
-      ok: false,
-      error: "LATEST_FETCH_FAILED",
-      message: error && error.message ? error.message : String(error),
-      checkedAt: new Date().toISOString()
-    });
-  }
+const SOURCES={
+  loto6:{base:"https://www.mizuhobank.co.jp/takarakuji/apl/txt/loto6/",max:43,pick:6,bonus:1},
+  loto7:{base:"https://www.mizuhobank.co.jp/takarakuji/apl/txt/loto7/",max:37,pick:7,bonus:2}
 };
-
-async function getText(url) {
-  const response = await fetch(url, {
-    headers: {
-      "user-agent": "Mozilla/5.0 (compatible; AI-Lottery-Lab/21.1.2)",
-      "accept": "text/html,application/xhtml+xml"
-    },
-    redirect: "follow"
-  });
-  if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
-  return await response.text();
-}
-
-function cleanText(html) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;|&#160;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-async function fetchLatest(game) {
-  const host = game === "loto6" ? "https://loto6.thekyo.jp" : "https://loto7.thekyo.jp";
-  const pick = game === "loto6" ? 6 : 7;
-  const bonusCount = game === "loto6" ? 1 : 2;
-
-  const topHtml = await getText(`${host}/`);
-  const topText = cleanText(topHtml);
-
-  const roundPatterns = game === "loto6"
-    ? [/ロト[６6]\s*第?\s*(\d+)\s*回/i, /第\s*(\d+)\s*回\s*ロト[６6]/i, /最新.*?第\s*(\d+)\s*回/i]
-    : [/ロト[７7]\s*第?\s*(\d+)\s*回/i, /第\s*(\d+)\s*回\s*ロト[７7]/i, /最新.*?第\s*(\d+)\s*回/i];
-
-  let no = 0;
-  for (const p of roundPatterns) {
-    const m = topText.match(p);
-    if (m) { no = Number(m[1]); break; }
-  }
-  if (!no) throw new Error(`${game}: 最新回号を取得できません`);
-
-  const resultUrl = `${host}/iphone/database/getresult?no=${no}`;
-  const resultText = cleanText(await getText(resultUrl));
-
-  const dateMatch = resultText.match(/(?:開催日|抽せん日)\s*[:：]?\s*(\d{4})[\/年\-](\d{1,2})[\/月\-](\d{1,2})/);
-  const date = dateMatch
-    ? `${dateMatch[1]}-${String(dateMatch[2]).padStart(2,"0")}-${String(dateMatch[3]).padStart(2,"0")}`
-    : "";
-
-  const mainMatch = resultText.match(/本数字\s*([0-9０-９\s|・,、]{11,80}?)(?:BO|ボーナス|等級)/i);
-  if (!mainMatch) throw new Error(`${game}: 本数字を解析できません`);
-
-  const toAscii = s => s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0)-0xFEE0));
-  const nums = (toAscii(mainMatch[1]).match(/\d{1,2}/g) || []).map(Number).slice(0, pick);
-
-  const bonusMatch = resultText.match(/(?:BO|ボーナス(?:数字)?)\s*[:：|]?\s*([0-9０-９\s|・,、]{1,30}?)(?:等級|1等|１等)/i);
-  const bonus = bonusMatch
-    ? (toAscii(bonusMatch[1]).match(/\d{1,2}/g) || []).map(Number).slice(0, bonusCount)
-    : [];
-
-  if (nums.length !== pick || bonus.length !== bonusCount) {
-    throw new Error(`${game}: 数字数が不正です 本数字=${nums.length} ボーナス=${bonus.length}`);
-  }
-
-  return {
-    no,
-    date,
-    nums: nums.sort((a,b)=>a-b),
-    bonus: bonus.sort((a,b)=>a-b),
-    source: resultUrl
-  };
-}
+function normalizeDate(v){const m=String(v||"").match(/(20\d{2})\D+(\d{1,2})\D+(\d{1,2})/);return m?`${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`:""}
+function decodeBuffer(buffer){const b=new Uint8Array(buffer),a=[];for(const e of ["shift_jis","utf-8"]){try{a.push(new TextDecoder(e).decode(b))}catch{}}return a.sort((x,y)=>(y.match(/ロト|本数字|ボーナス|抽せん/g)||[]).length-(x.match(/ロト|本数字|ボーナス|抽せん/g)||[]).length)[0]||""}
+function cells(s){return String(s||"").split(/[,\t]/).map(x=>x.trim().replace(/^"|"$/g,""))}
+function numsFrom(s,max){return cells(s).flatMap(x=>(x.match(/\d{1,2}/g)||[]).map(Number)).filter(n=>n>=1&&n<=max)}
+function valid(d,c){return d&&Number.isInteger(d.no)&&d.no>0&&/^\d{4}-\d{2}-\d{2}$/.test(d.date)&&d.nums?.length===c.pick&&new Set(d.nums).size===c.pick&&d.bonus?.length===c.bonus&&new Set(d.bonus).size===c.bonus&&![...d.bonus].some(n=>d.nums.includes(n))}
+function parseCsv(text,filename,c){const n=String(text||"").replace(/\r/g,""),lines=n.split("\n").map(x=>x.trim()).filter(Boolean);const no=Number((n.match(/第\s*(\d+)\s*回/)||[])[1]||(filename.match(/(\d{4})\.CSV$/i)||[])[1]||0);const date=normalizeDate(lines.find(x=>/抽せん日|抽選日|日付/.test(x))||n);let nums=[],bonus=[];for(let i=0;i<lines.length;i++){if(/本数字/.test(lines[i])){nums=numsFrom(lines[i].replace(/^.*?本数字/,""),c.max);if(nums.length<c.pick&&lines[i+1])nums.push(...numsFrom(lines[i+1],c.max));nums=nums.slice(0,c.pick)}if(/ボーナス/.test(lines[i])){bonus=numsFrom(lines[i].replace(/^.*?ボーナス(?:数字)?/,""),c.max);if(bonus.length<c.bonus&&lines[i+1])bonus.push(...numsFrom(lines[i+1],c.max));bonus=bonus.slice(0,c.bonus)}}const flat=cells(n.replace(/\n/g,","));if(nums.length!==c.pick){const i=flat.findIndex(x=>/本数字/.test(x));if(i>=0)nums=flat.slice(i+1).flatMap(x=>(x.match(/^\d{1,2}$/)||[]).map(Number)).filter(x=>x>=1&&x<=c.max).slice(0,c.pick)}if(bonus.length!==c.bonus){const i=flat.findIndex(x=>/ボーナス/.test(x));if(i>=0)bonus=flat.slice(i+1).flatMap(x=>(x.match(/^\d{1,2}$/)||[]).map(Number)).filter(x=>x>=1&&x<=c.max).slice(0,c.bonus)}const d={no,date,nums:nums.sort((a,b)=>a-b),bonus:bonus.sort((a,b)=>a-b)};if(!valid(d,c))throw new Error(`公式CSV解析失敗: ${filename}`);return d}
+async function get(url){const r=await fetch(url,{cache:"no-store",headers:{"User-Agent":"Mozilla/5.0","Accept":"text/plain,text/csv,*/*"}});if(!r.ok)throw new Error(`公式サイト HTTP ${r.status}`);return r}
+module.exports=async(req,res)=>{res.setHeader("Cache-Control","no-store");const game=String(req.query?.game||"loto6"),c=SOURCES[game];if(!c)return res.status(400).json({ok:false,error:"未対応ゲーム"});try{const nr=await get(c.base+"name.txt");const nt=decodeBuffer(await nr.arrayBuffer());const files=[...new Set((nt.match(/[A-Z]\d+\.CSV/gi)||[]))].sort((a,b)=>Number((b.match(/(\d{4})\.CSV$/i)||[])[1]||0)-Number((a.match(/(\d{4})\.CSV$/i)||[])[1]||0));if(!files.length)throw new Error("公式CSV一覧を解析できません");let last;for(const f of files.slice(0,5)){try{const cr=await get(c.base+f);const d=parseCsv(decodeBuffer(await cr.arrayBuffer()),f,c);return res.status(200).json({ok:true,game,draw:{...d,verified:true,source:"みずほ銀行公式CSV"},source:"みずほ銀行公式CSV",filename:f,checkedAt:new Date().toISOString()})}catch(e){last=e}}throw last||new Error("公式CSV取得失敗")}catch(e){return res.status(502).json({ok:false,game,error:String(e.message||e),checkedAt:new Date().toISOString()})}};

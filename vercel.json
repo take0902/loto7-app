@@ -1,36 +1,97 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/official/loto6/:file*",
-      "destination": "https://www.mizuhobank.co.jp/takarakuji/apl/txt/loto6/:file*"
+      "src": "api-latest.js",
+      "use": "@vercel/node"
     },
     {
-      "source": "/official/loto7/:file*",
-      "destination": "https://www.mizuhobank.co.jp/takarakuji/apl/txt/loto7/:file*"
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "style.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "manifest.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "loto7_latest_backup.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "loto7.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "service-worker.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "README.md",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "loto6_latest_backup.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "TEST_REPORT.txt",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "manifest.webmanifest",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "latest.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "loto6.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "icon.svg",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/latest",
+      "dest": "/api-latest.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/official/(.*)",
+      "source": "/(.*)",
       "headers": [
-        {"key": "Cache-Control", "value": "no-store, max-age=0"},
-        {"key": "x-vercel-enable-rewrite-caching", "value": "0"}
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
-    },
-    {
-      "source": "/(.*\\.css)",
-      "headers": [{"key": "Cache-Control", "value": "public, max-age=0, must-revalidate"}]
-    },
-    {
-      "source": "/(.*\\.js)",
-      "headers": [{"key": "Cache-Control", "value": "public, max-age=0, must-revalidate"}]
-    },
-    {
-      "source": "/(.*\\.json)",
-      "headers": [{"key": "Cache-Control", "value": "no-store"}]
     }
   ]
 }
