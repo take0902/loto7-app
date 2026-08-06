@@ -1,4 +1,4 @@
-// AI Lottery Lab Professional 1.1.0 — verified draw and prize-check release
+// AI Lottery Lab Professional 2.0.0 — stable official-data and prize-check release
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json",csv:"loto6_data.csv"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json",csv:"loto7_data.csv"}
@@ -14,10 +14,7 @@ const C=()=>config[game], R=()=>draws[game];
 
 // 公式発表済みで、内蔵JSONへの反映待ちの抽選結果。
 // JSON側に同じ回号が追加された場合は自動的に重複を除外します。
-const supplementalDraws={
-  loto6:[],
-  loto7:[{no:688,date:"2026-07-31",nums:[4,21,25,28,30,35,37],bonus:[12,16]}]
-};
+const supplementalDraws={loto6:[],loto7:[]};
 
 function mergeDraws(base,extra=[]){
   const byNo=new Map();
@@ -30,17 +27,21 @@ function mergeDraws(base,extra=[]){
   return [...byNo.values()].sort((a,b)=>a.no-b.no);
 }
 
-function registeredDraws(g){
-  const a=user[g]?.manualDraws;
-  return Array.isArray(a)?a:[];
-}
 
-function upsertManualDraw(g,draw){
-  user[g].manualDraws??=[];
-  const i=user[g].manualDraws.findIndex(x=>Number(x.no)===Number(draw.no));
-  if(i>=0)user[g].manualDraws[i]=draw; else user[g].manualDraws.push(draw);
-  user[g].manualDraws.sort((a,b)=>a.no-b.no);
-  draws[g]=mergeDraws(draws[g],user[g].manualDraws);
+function verifiedCacheKey(g){return `loto67_verified_${g}_v2`}
+function loadVerifiedDraw(g){
+  try{
+    const d=JSON.parse(localStorage.getItem(verifiedCacheKey(g))||"null");
+    return validRemoteDraw(g,d)&&d.verified===true?d:null;
+  }catch{return null}
+}
+function saveVerifiedDraw(g,draw){
+  if(validRemoteDraw(g,draw)&&draw.verified===true){
+    localStorage.setItem(verifiedCacheKey(g),JSON.stringify(draw));
+  }
+}
+function latestVerifiedDraw(g=game){
+  return [...(draws[g]||[])].reverse().find(d=>d.verified===true)||loadVerifiedDraw(g);
 }
 
 function prizeRank(g,main,bonus){
@@ -72,7 +73,8 @@ function loadUser(){
       parsed[g].checks??=[];
       parsed[g].customWeights??=null;
       parsed[g].reviews??=[];
-      parsed[g].manualDraws??=[];
+      // 旧版で抽選結果と予想対象回が混在したため、手動抽選キャッシュは廃棄する。
+      parsed[g].manualDraws=[];
       parsed[g].featureWeights??={repeat:1,slide:1,bonusAdj:1,oddEven:1,sum:1,ac:1,range:1,consecutive:1};
       parsed[g].autoLearning??=true;
       parsed[g].learningLog??=[];
@@ -81,6 +83,18 @@ function loadUser(){
   }catch{return structuredClone(defaultUser)}
 }
 function save(){localStorage.setItem("loto67v12",JSON.stringify(user))}
+function migrateDataIntegrity(){
+  let changed=false;
+  for(const g of ["loto6","loto7"]){
+    if(Array.isArray(user[g].manualDraws)&&user[g].manualDraws.length){user[g].manualDraws=[];changed=true}
+    user[g].reviews=(user[g].reviews||[]).filter(r=>{
+      const p=(user[g].savedSets||[]).find(x=>Number(x.drawNo)===Number(r.no));
+      return !p||Number(p.drawNo)===Number(r.no);
+    });
+  }
+  if(changed)save();
+}
+
 function createSafetyBackup(reason="自動バックアップ"){
   try{localStorage.setItem("loto67v12_last_backup",JSON.stringify({reason,date:new Date().toISOString(),user:structuredClone(user)}));return true}catch{return false}
 }
@@ -112,9 +126,9 @@ function injectRuntimeStyles(){
 }
 const APP_META=Object.freeze({
   name:"AI Lottery Lab Professional",
-  version:"1.1.0",
-  engine:"PRO 1.1",
-  build:"2026-08-06-complete"
+  version:"2.0.0",
+  engine:"PRO 2",
+  build:"2026-08-06-stable"
 });
 function applyAppMeta(){
   document.title=`${APP_META.name} ${APP_META.version}`;
@@ -193,7 +207,7 @@ function parseCsvRows(text,g){
       else{no=Number(String(a[0]||"").replace(/\D/g,""));date=a[1]||"";nums=a.slice(2,2+c.pick).map(Number);bonus=a.slice(2+c.pick,2+c.pick+c.bonus).map(Number)}
     }
     const d={no:Number(no),date:String(date||"").replace(/\//g,"-"),nums,bonus};
-    if(validRemoteDraw(g,d))rows.push(d);
+    if(validRemoteDraw(g,d))rows.push({...d,verified:false,source:"履歴CSV"});
   }
   return mergeDraws([],rows);
 }
@@ -201,7 +215,7 @@ function parseCsvRows(text,g){
 async function fetchCsvHistory(g){
   const path=config[g].csv;
   try{
-    const r=await fetch(`${path}?v=1.1.0`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=2.0.0`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const rows=parseCsvRows(await r.text(),g);
     if(rows.length<10)throw new Error(`${path}: 有効データが${rows.length}回分しかありません`);
@@ -214,20 +228,21 @@ async function loadJson(path){
   const csvRows=await fetchCsvHistory(gameKey);
   let jsonRows=[];
   try{
-    const r=await fetch(`${path}?v=1.1.0`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=2.0.0`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
-    jsonRows=data.filter(d=>validRemoteDraw(gameKey,d));
+    jsonRows=data.filter(d=>validRemoteDraw(gameKey,d)).map(d=>({...d,verified:d.verified===true,source:d.source||"内蔵JSON"}));
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=1.1.0`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=2.0.0`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
-      const d=await r.json();if(validRemoteDraw(gameKey,d))jsonRows=[d];
+      const d=await r.json();if(validRemoteDraw(gameKey,d))jsonRows=[{...d,verified:d.verified===true,source:d.source||"内蔵バックアップ"}];
     }catch(backupError){console.warn("JSONとバックアップを取得できません",primaryError,backupError)}
   }
-  const merged=mergeDraws(csvRows,jsonRows);
+  const cached=loadVerifiedDraw(gameKey);
+  const merged=mergeDraws(csvRows,[...jsonRows,...(cached?[cached]:[])]);
   if(merged.length)return merged;
   throw new Error(`${gameKey}: 利用可能な抽選履歴がありません`);
 }
@@ -261,8 +276,7 @@ async function fetchRemoteLatest(g,{silent=false}={}){
         const draw={...data,no:Number(data.no),nums:data.nums.map(Number).sort((a,b)=>a-b),bonus:data.bonus.map(Number).sort((a,b)=>a-b),verified:isOfficial||data.verified===true,source:isOfficial?(payload.source||"みずほ銀行公式CSV"):(data.source||"内蔵データ")};
         const before=draws[g]?.at(-1)?.no||0;
         draws[g]=mergeDraws(draws[g]||[],[draw]);
-        upsertManualDraw(g,draw);
-        save();
+        if(draw.verified)saveVerifiedDraw(g,draw);
         state.status=draw.no>before?"更新完了":"最新確認済み";
         state.source=isOfficial?`${payload.source||"みずほ銀行公式CSV"}（公式確認済み）`:"latest.json（内蔵・公式未確認）";
         state.checkedAt=new Date().toISOString();
@@ -322,8 +336,9 @@ function renderRemoteUpdatePanel(){
 }
 async function boot(){
   try{
-    draws.loto6=mergeDraws(await loadJson(config.loto6.file),[...supplementalDraws.loto6,...registeredDraws("loto6")]);
-    draws.loto7=mergeDraws(await loadJson(config.loto7.file),[...supplementalDraws.loto7,...registeredDraws("loto7")]);
+    migrateDataIntegrity();
+    draws.loto6=mergeDraws(await loadJson(config.loto6.file),supplementalDraws.loto6);
+    draws.loto7=mergeDraws(await loadJson(config.loto7.file),supplementalDraws.loto7);
     migratePurchases();
     injectRuntimeStyles();
     bind(); render();
@@ -356,7 +371,6 @@ function bind(){
     if(b.dataset.tab==="lab")renderLab();
     if(b.dataset.tab==="simulator")renderSimulatorDefaults();
     if(b.dataset.tab==="purchase")renderPurchaseMode();
-    if(b.dataset.tab==="updater")renderUpdaterPanel();
   });
   $("#analysisWindow").onchange=renderAnalysis;
   $("#reportWindow").onchange=renderReport;
@@ -387,7 +401,6 @@ function bind(){
   if($("#exportCsvBtn"))$("#exportCsvBtn").onclick=exportPurchaseCsv;
   if($("#copyPurchaseBtn"))$("#copyPurchaseBtn").onclick=copyPurchaseMode;
   if($("#printPurchaseBtn"))$("#printPurchaseBtn").onclick=()=>window.print();
-  initAutoUpdater();
   let prompt;
   window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();prompt=e;$("#installBtn").hidden=false});
   $("#installBtn").onclick=async()=>{if(prompt){prompt.prompt();await prompt.userChoice;prompt=null;$("#installBtn").hidden=true}};
@@ -653,7 +666,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderScoreboard();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderLab();renderSimulatorDefaults();renderPurchaseMode();renderUpdaterPanel();
+  renderAnalysis();renderSets();renderCandidateScores();renderScoreboard();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderLab();renderSimulatorDefaults();renderPurchaseMode();
 }
 
 function scoreClass(n, recent30, maxRecent, gap){
@@ -1268,7 +1281,7 @@ function fstate(score,text){
 }
 
 function runLatestAutoReview(){
-  const latest=R().at(-1),saved=user[game].savedSets||[];
+  const latest=latestVerifiedDraw(game),saved=user[game].savedSets||[];
   if(!latest)return alert("抽選データがありません");
   if(!latest.verified)return alert(`第${latest.no}回は公式確認済みデータではありません。最新データ確認を実行してください。`);
   if(!saved.length)return alert("購入したセットを先に保存してください");
@@ -1577,47 +1590,5 @@ async function copyPurchaseMode(){
   try{await navigator.clipboard.writeText(text);$("#purchaseExportStatus").textContent="購入数字をコピーしました"}catch{alert("コピーできませんでした")}
 }
 
-
-// ===== GitHub/Vercel 自動アップデート =====
-const UPDATE_MAX_BYTES=3*1024*1024;
-function renderUpdaterPanel(){
-  const status=$("#updateStatus");
-  if(!status)return;
-  const file=$("#releaseZip")?.files?.[0];
-  if(file){
-    $("#updateFileInfo").innerHTML=`<b>${escapeHtml(file.name)}</b><br>${(file.size/1024).toFixed(1)} KB`;
-  }
-}
-function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function initAutoUpdater(){
-  const file=$("#releaseZip"),btn=$("#runUpdateBtn");
-  if(file&&!file.dataset.bound){file.dataset.bound="1";file.onchange=renderUpdaterPanel}
-  if(btn&&!btn.dataset.bound){btn.dataset.bound="1";btn.onclick=runAutoUpdate}
-}
-async function runAutoUpdate(){
-  const file=$("#releaseZip")?.files?.[0],secret=$("#updateSecret")?.value||"",message=$("#updateMessage")?.value.trim()||`AI Lottery Lab Professional 1.1.0 update`;
-  const status=$("#updateStatus"),btn=$("#runUpdateBtn");
-  if(!file)return alert("完成版ZIPを選択してください");
-  if(!/\.zip$/i.test(file.name))return alert("ZIPファイルを選択してください");
-  if(file.size>UPDATE_MAX_BYTES)return alert("ZIPは3MB以下にしてください");
-  if(!secret)return alert("管理パスワードを入力してください");
-  if(!confirm(`${file.name} をGitHubの公開ブランチへ反映しますか？`))return;
-  btn.disabled=true;status.className="muted";status.textContent="ZIPを送信し、サーバー側で検査しています…";
-  try{
-    const body=await file.arrayBuffer();
-    const response=await fetch(`/api/update?message=${encodeURIComponent(message)}`,{
-      method:"POST",
-      headers:{"Content-Type":"application/octet-stream","X-Update-Secret":secret,"X-File-Name":encodeURIComponent(file.name)},
-      body
-    });
-    const data=await response.json().catch(()=>({ok:false,error:`HTTP ${response.status}`}));
-    if(!response.ok||!data.ok)throw new Error(data.error||`HTTP ${response.status}`);
-    status.className="ok";
-    status.innerHTML=`更新コミットを作成しました。<br>バージョン：${escapeHtml(data.version||"-")}<br>コミット：${escapeHtml((data.commit||"").slice(0,7))}<br>Vercel反映まで通常数分かかります。`;
-    $("#updateSecret").value="";
-  }catch(error){
-    status.className="warn";status.textContent=`更新失敗：${error.message||error}`;
-  }finally{btn.disabled=false}
-}
 
 boot();

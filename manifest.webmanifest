@@ -1,7 +1,7 @@
 {
-  "name": "AI Lottery Lab Professional 1.1.0",
-  "short_name": "Lottery Lab Pro",
-  "start_url": "/?v=1.1.0",
+  "name": "AI Lottery Lab Professional 2.0.0",
+  "short_name": "Lottery Lab 2.0",
+  "start_url": "/?v=200",
   "scope": "/",
   "display": "standalone",
   "theme_color": "#6657ff",
