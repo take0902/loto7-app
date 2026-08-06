@@ -1,11 +1,15 @@
-# AI Lottery Lab Ver.12.0 Learning Engine
+# AI Lottery Lab Professional 1.0.0
 
-- 最新結果と最新保存セットをワンタップ照合
-- 二重検証防止
-- 3個以上率・4個以上率・直近12回の成績推移
-- 特徴量の累積評価からAI学習コメントを生成
-- 学習重みを予想セットの総合点へ反映
-- 各セットにAI信頼度を表示
-- Ver.11の保存データを自動継承
+ロト6・ロト7の統計分析、買い目生成、購入履歴、抽選後検証、バックテスト、自動更新を統合したWebアプリです。
 
-ZIP内の全ファイルをGitHubの `take0902/loto7-app` に上書きしてください。
+## 公開構成
+
+- `index.html`：画面本体
+- `app.js`：分析・予想・履歴・検証ロジック
+- `app.css`：画面デザイン
+- `api/update.js`：GitHub/Vercel自動更新API
+- `scripts/validate-release.js`：リリース整合性検査
+
+## バージョン管理
+
+画面内の各機能に個別バージョンは付けません。アプリ全体を `Professional 1.0.0` として一元管理します。

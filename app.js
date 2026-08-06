@@ -1,4 +1,4 @@
-// AI Lottery Lab Ver.32.0.0 統合最新版 2026-08-04
+// AI Lottery Lab Professional 1.0.0 — unified stable release
 const config={
   loto6:{name:"ロト6",max:43,pick:6,bonus:1,file:"loto6.json"},
   loto7:{name:"ロト7",max:37,pick:7,bonus:2,file:"loto7.json"}
@@ -105,22 +105,22 @@ function duplicateSets(sets){
   const seen=new Map(),dupes=[];(sets||[]).forEach((a,i)=>{const k=[...a].sort((x,y)=>x-y).join(",");if(seen.has(k))dupes.push([seen.get(k)+1,i+1]);else seen.set(k,i)});return dupes;
 }
 function reviewBalls(set,winning,bonus){return `<div class="balls">${set.map(n=>`<span class="ball${winning.includes(n)?" hit-main":bonus.includes(n)?" hit-bonus":""}">${String(n).padStart(2,"0")}</span>`).join("")}</div>`}
-function injectVer21Styles(){
+function injectRuntimeStyles(){
   if(document.getElementById("ver21Styles"))return;const style=document.createElement("style");style.id="ver21Styles";
   style.textContent=`.purchase-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.purchase-tools input,.purchase-tools select{width:100%;box-sizing:border-box}.purchase-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.purchase-summary article{padding:14px;border-radius:14px;background:#f4f6fb;text-align:center}.purchase-summary b{display:block;font-size:1.35rem}.purchase-summary span{font-size:.82rem;color:#6b7280}.purchase-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.purchase-note{white-space:pre-wrap;padding:10px;border-radius:10px;background:#f6f7fb;margin:8px 0}.purchase-status{font-weight:800}.purchase-status.win{color:#c026d3}.purchase-status.pending{color:#b45309}.purchase-status.lose{color:#64748b}.ball.hit-main{background:linear-gradient(135deg,#10b981,#22c55e)!important;box-shadow:0 0 0 4px rgba(16,185,129,.18)}.ball.hit-bonus{background:linear-gradient(135deg,#f59e0b,#facc15)!important;color:#422006!important;box-shadow:0 0 0 4px rgba(245,158,11,.18)}.match-legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:.85rem}.match-legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px}.match-legend .m{background:#10b981}.match-legend .b{background:#f59e0b}.duplicate-warning{padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;margin:8px 0}@media(min-width:700px){.purchase-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.purchase-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}`;
   document.head.appendChild(style)
 }
-function updateVersionLabels(){
-  const version="32.0.0";
-  document.querySelectorAll("body *").forEach(el=>{
-    if(el.children.length!==0)return;
-    const text=el.textContent||"";
-    const fixed=text
-      .replace(/Ver\.\d+(?:\.\d+){0,2}/g,`Ver.${version}`)
-      .replace(/ENGINE\s+V\d+/g,"ENGINE V32");
-    if(fixed!==text)el.textContent=fixed;
-  });
-  document.title=`AI Lottery Lab Ver.${version}`;
+const APP_META=Object.freeze({
+  name:"AI Lottery Lab Professional",
+  version:"1.0.0",
+  engine:"PRO 1",
+  build:"2026-08-06"
+});
+function applyAppMeta(){
+  document.title=`${APP_META.name} ${APP_META.version}`;
+  document.querySelectorAll("[data-app-version]").forEach(el=>{el.textContent=APP_META.version});
+  document.querySelectorAll("[data-engine-version]").forEach(el=>{el.textContent=APP_META.engine});
+  document.querySelectorAll("[data-build-date]").forEach(el=>{el.textContent=APP_META.build});
 }
 
 function makePurchaseId(){
@@ -168,7 +168,7 @@ function purchaseText(sets){
 async function loadJson(path){
   const gameKey=path.startsWith("loto6")?"loto6":"loto7";
   try{
-    const r=await fetch(`${path}?v=32.0.0`,{cache:"no-store"});
+    const r=await fetch(`${path}?v=1.0.0`,{cache:"no-store"});
     if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);
     const data=await r.json();
     if(!Array.isArray(data)||!data.length)throw new Error(`${path}: データ形式エラー`);
@@ -176,7 +176,7 @@ async function loadJson(path){
   }catch(primaryError){
     const backupPath=gameKey==="loto6"?"loto6_latest_backup.json":"loto7_latest_backup.json";
     try{
-      const r=await fetch(`${backupPath}?v=32.0.0`,{cache:"no-store"});
+      const r=await fetch(`${backupPath}?v=1.0.0`,{cache:"no-store"});
       if(!r.ok)throw new Error(`${backupPath}: HTTP ${r.status}`);
       const d=await r.json();
       if(!validRemoteDraw(gameKey,d))throw new Error(`${backupPath}: データ形式エラー`);
@@ -252,11 +252,11 @@ async function boot(){
     draws.loto6=mergeDraws(await loadJson(config.loto6.file),[...supplementalDraws.loto6,...registeredDraws("loto6")]);
     draws.loto7=mergeDraws(await loadJson(config.loto7.file),[...supplementalDraws.loto7,...registeredDraws("loto7")]);
     migratePurchases();
-    injectVer21Styles();
+    injectRuntimeStyles();
     bind(); render();
-    updateVersionLabels();
+    applyAppMeta();
     await Promise.all([fetchRemoteLatest("loto6",{silent:true}),fetchRemoteLatest("loto7",{silent:true})]);
-    render();updateVersionLabels();
+    render();applyAppMeta();
     if("serviceWorker" in navigator){
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
     }
@@ -267,7 +267,7 @@ async function boot(){
   }
 }
 function bind(){
-  const scoreStrategy=$("#scoreStrategy");if(scoreStrategy)scoreStrategy.onchange=renderVer31Scoreboard;
+  const scoreStrategy=$("#scoreStrategy");if(scoreStrategy)scoreStrategy.onchange=renderScoreboard;
   $$("[data-game]").forEach(b=>b.onclick=()=>{
     game=b.dataset.game;
     $$("[data-game]").forEach(x=>x.classList.toggle("active",x===b));
@@ -280,7 +280,7 @@ function bind(){
     $$("section").forEach(s=>s.classList.remove("active"));
     $("#"+b.dataset.tab).classList.add("active");
     if(b.dataset.tab==="report")renderReport();
-    if(b.dataset.tab==="lab")renderVer26Lab();
+    if(b.dataset.tab==="lab")renderLab();
     if(b.dataset.tab==="simulator")renderSimulatorDefaults();
     if(b.dataset.tab==="purchase")renderPurchaseMode();
     if(b.dataset.tab==="updater")renderUpdaterPanel();
@@ -305,7 +305,7 @@ function bind(){
   $("#runReviewBtn").onclick=runAutoReview;
   $("#applyReviewBtn").onclick=applyReviewLearning;
   ensurePurchaseManager();
-  if($("#labWindow"))$("#labWindow").onchange=renderVer26Lab;
+  if($("#labWindow"))$("#labWindow").onchange=renderLab;
   if($("#toggleAutoLearningBtn"))$("#toggleAutoLearningBtn").onclick=toggleAutoLearning;
   if($("#resetLearningBtn"))$("#resetLearningBtn").onclick=resetFeatureLearning;
   if($("#runSimulatorBtn"))$("#runSimulatorBtn").onclick=runConditionSimulator;
@@ -564,7 +564,7 @@ function generate(){
   }
   while(selected.length<count&&candidates[selected.length])selected.push(candidates[selected.length]);
   user[game].sets=selected.slice(0,count).map(x=>x.set);
-  save();renderSets();renderCandidateScores();renderReport();renderVer26Lab();
+  save();renderSets();renderCandidateScores();renderReport();renderLab();
 }
 function render(){
   const c=C(),r=R(),last=r.at(-1);
@@ -580,7 +580,7 @@ function render(){
   $("#bonusLabel").textContent=`ボーナス数字（${c.bonus}個）`;
   const sequenceOk=r.every((x,i)=>i===0||x.no>=r[i-1].no);
   $("#dataHealth").innerHTML=`<p><b>${r.length.toLocaleString("ja-JP")}回分</b>を読込済み</p><p class="${sequenceOk?"ok":"warn"}">${sequenceOk?"回号順序：正常":"回号順序：要確認"}</p><p class="muted">最新収録：第${last.no}回（${last.date}）</p>`;
-  renderAnalysis();renderSets();renderCandidateScores();renderVer31Scoreboard();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderVer26Lab();renderSimulatorDefaults();renderPurchaseMode();renderUpdaterPanel();
+  renderAnalysis();renderSets();renderCandidateScores();renderScoreboard();renderValidationHistory();renderHistory();renderReport();renderBacktestEmpty();renderReviewPanel();renderPurchaseHistory();renderRemoteUpdatePanel();renderLab();renderSimulatorDefaults();renderPurchaseMode();renderUpdaterPanel();
 }
 
 function scoreClass(n, recent30, maxRecent, gap){
@@ -597,7 +597,7 @@ function numberStability(n){
   const avg=mean(windows),spread=Math.max(...windows)-Math.min(...windows);
   return Math.round(clamp((avg*7)+(1-spread*5),0,1)*100);
 }
-function renderVer31Scoreboard(){
+function renderScoreboard(){
   const body=$("#scoreboardBody");if(!body)return;
   const strategy=$("#scoreStrategy")?.value||"balanced";
   const scores=multiScore(strategy),maxScore=scores[0]?.total||1;
@@ -1063,7 +1063,7 @@ function ensurePurchaseManager(){
 }
 function renderPurchaseHistory(){
   ensurePurchaseManager();
-  if($("#labWindow"))$("#labWindow").onchange=renderVer26Lab;
+  if($("#labWindow"))$("#labWindow").onchange=renderLab;
   if($("#toggleAutoLearningBtn"))$("#toggleAutoLearningBtn").onclick=toggleAutoLearning;
   if($("#resetLearningBtn"))$("#resetLearningBtn").onclick=resetFeatureLearning;
   if($("#runSimulatorBtn"))$("#runSimulatorBtn").onclick=runConditionSimulator;
@@ -1345,12 +1345,12 @@ function applyReviewLearning(){
   applyReviewLearningInternal(pendingReviewAdjustment,"手動反映");
   save();pendingReviewAdjustment=null;
   $("#applyReviewBtn").disabled=true;
-  renderReviewPanel();renderSets();renderVer26Lab();
+  renderReviewPanel();renderSets();renderLab();
   alert("学習重みを更新し、次回予想へ反映しました");
 }
 
 
-// ===== Ver.32.0.0 AIロジック研究所 =====
+// ===== AIロジック研究所 =====
 function gradeFromScore(score){return score>=90?"S":score>=80?"A":score>=68?"B":score>=55?"C":"D"}
 function featureOccurrence(rows,key){
   if(!rows.length)return 0;let ok=0;
@@ -1397,10 +1397,10 @@ function applyReviewLearningInternal(adjustment,reason){
   const changes=Object.keys(featureNames).map(k=>({key:k,delta:(user[game].featureWeights[k]||1)-(before[k]||1)})).filter(x=>Math.abs(x.delta)>.0001);
   user[game].learningLog??=[];user[game].learningLog.unshift({date:new Date().toISOString(),reason,changes});user[game].learningLog=user[game].learningLog.slice(0,50);
 }
-function toggleAutoLearning(){user[game].autoLearning=!user[game].autoLearning;save();renderVer26Lab()}
+function toggleAutoLearning(){user[game].autoLearning=!user[game].autoLearning;save();renderLab()}
 function resetFeatureLearning(){
   if(!confirm(`${C().name}の学習重みを初期値へ戻しますか？`))return;createSafetyBackup("学習重み初期化");
-  user[game].featureWeights={repeat:1,slide:1,bonusAdj:1,oddEven:1,sum:1,ac:1,range:1,consecutive:1};user[game].learningLog=[];save();renderVer26Lab();renderSets();
+  user[game].featureWeights={repeat:1,slide:1,bonusAdj:1,oddEven:1,sum:1,ac:1,range:1,consecutive:1};user[game].learningLog=[];save();renderLab();renderSets();
 }
 function renderLearningState(){
   const box=$("#learningState"),log=$("#learningLog");if(!box||!log)return;const weights=user[game].featureWeights||{};
@@ -1416,10 +1416,10 @@ function renderFilterContribution(){
   const box=$("#filterContribution");if(!box)return;const reviews=(user[game].reviews||[]).slice(0,30),weights=user[game].featureWeights||{};
   box.innerHTML=Object.keys(featureNames).map(k=>{const vals=reviews.map(r=>r.features?.[k]?.score).filter(v=>Number.isFinite(v));const observed=vals.length?mean(vals):.5,weight=weights[k]||1,score=Math.round(clamp(observed*weight/1.5,0,1)*100);return `<div class="filter-row"><b>${featureNames[k]}</b><div class="bar"><i style="width:${score}%"></i></div><em>${score}</em></div>`}).join('')+'<p class="muted">貢献度は直近検証の特徴スコアと現在重みを合成した研究指標です。</p>';
 }
-function renderVer26Lab(){if(!$("#lab"))return;renderNumberHeatmap();renderSetDiagnosisLab();renderLearningState();renderLogicComparison();renderFilterContribution()}
+function renderLab(){if(!$("#lab"))return;renderNumberHeatmap();renderSetDiagnosisLab();renderLearningState();renderLogicComparison();renderFilterContribution()}
 
 
-// ===== Ver.32.0.0 条件シミュレーター =====
+// ===== 条件シミュレーター =====
 let simulatorInitialized=false;
 function simRows(){const v=$("#simWindow")?.value||"300";return v==="all"?R():R().slice(-Number(v))}
 function classifyCount(value,rule){if(rule==="any")return true;if(rule==="0")return value===0;if(rule==="1")return value===1;if(rule==="2")return value>=2;return true}
@@ -1473,7 +1473,7 @@ function renderSimulatorHistory(matched){
 }
 
 
-// ===== Ver.32.0.0 購入モード・Excel/CSV出力 =====
+// ===== 購入モード・Excel/CSV出力 =====
 function purchaseModeKey(){return `loto67_purchase_checks_${game}`}
 function purchaseModeChecks(){try{return JSON.parse(localStorage.getItem(purchaseModeKey())||"{}")||{}}catch{return {}}}
 function currentPurchaseSets(){return Array.isArray(user[game]?.sets)?user[game].sets:[]}
@@ -1516,7 +1516,7 @@ async function copyPurchaseMode(){
 }
 
 
-// ===== Ver.32.0.0 GitHub/Vercel 自動アップデート =====
+// ===== GitHub/Vercel 自動アップデート =====
 const UPDATE_MAX_BYTES=3*1024*1024;
 function renderUpdaterPanel(){
   const status=$("#updateStatus");
@@ -1533,7 +1533,7 @@ function initAutoUpdater(){
   if(btn&&!btn.dataset.bound){btn.dataset.bound="1";btn.onclick=runAutoUpdate}
 }
 async function runAutoUpdate(){
-  const file=$("#releaseZip")?.files?.[0],secret=$("#updateSecret")?.value||"",message=$("#updateMessage")?.value.trim()||`AI Lottery Lab Ver.32 update`;
+  const file=$("#releaseZip")?.files?.[0],secret=$("#updateSecret")?.value||"",message=$("#updateMessage")?.value.trim()||`AI Lottery Lab Professional 1.0.0 update`;
   const status=$("#updateStatus"),btn=$("#runUpdateBtn");
   if(!file)return alert("完成版ZIPを選択してください");
   if(!/\.zip$/i.test(file.name))return alert("ZIPファイルを選択してください");
